@@ -74,6 +74,11 @@ jobs:
           script: |
             cd /home/ubuntu/spring-server
             
+            # .env 파일이 없으면 생성
+            if [ ! -f .env ]; then
+              echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
+            fi
+      
             # Docker 로그인
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
             
