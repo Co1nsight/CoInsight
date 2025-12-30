@@ -1,4 +1,4 @@
-name: Spring Boot CI/CD Pipeline with Docker
+name: Spring Boot CI/CD Pipeline with Docker Compose
 
 on:
   push:
@@ -8,15 +8,16 @@ on:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/spring-app
-  DOCKER_TAG: ${{ github.sha }}
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     
     steps:
+      # 코드 체크아웃
       - uses: actions/checkout@v4
       
+      # JDK 21 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -24,57 +25,46 @@ jobs:
           distribution: 'temurin'
           cache: gradle
           
+      # Gradlew 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         
+      # 테스트 실행
       - name: Test with Gradle
         run: ./gradlew test
         
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+      # 빌드 (테스트 제외)
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+        
+      # Docker 이미지 빌드 및 푸시
+      - name: Docker build and push
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build --platform linux/amd64 -t ${{ env.DOCKER_IMAGE }}:latest .
+          docker push ${{ env.DOCKER_IMAGE }}:latest
+      
+      # GitHub Actions IP 가져오기
+      - name: Get Github Actions IP
+        id: ip
+        uses: haythem/public-ip@v1.2
+      
+      # AWS 자격 증명 설정
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          name: test-results
-          path: build/test-results/
-
-  build-and-push:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
-    
-    steps:
-      - uses: actions/checkout@v4
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # GitHub Actions IP를 AWS 보안 그룹에 추가
+      - name: Add Github Actions IP to Security group
+        run: |
+          aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port ${{ secrets.PORT }} --cidr ${{ steps.ip.outputs.ipv4 }}/32
+        continue-on-error: true
       
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
-      
-      - name: Image digest
-        run: echo "Image pushed successfully!"
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
-    
-    steps:
-      - name: Deploy to EC2
+      # SSH로 EC2 접속 및 배포
+      - name: Deploy to EC2 with Docker Compose
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -82,37 +72,39 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # Docker Hub 로그인 (필요시)
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            cd /home/ubuntu/spring-server
             
-            # 최신 이미지 pull
-            docker pull ${{ env.DOCKER_IMAGE }}:latest
+            # Docker 로그인
+            echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
             
             # 기존 컨테이너 중지 및 제거
-            docker stop spring-app || true
-            docker rm spring-app || true
+            sudo docker-compose down
             
-            # 새 컨테이너 실행
-            docker run -d \
-              --name spring-app \
-              -p 8080:8080 \
-              --restart unless-stopped \
-              -e SPRING_PROFILES_ACTIVE=prod \
-              ${{ env.DOCKER_IMAGE }}:latest
+            # 최신 이미지 pull
+            sudo docker pull ${{ env.DOCKER_IMAGE }}:latest
             
-            # 이전 이미지 정리
-            docker image prune -f
+            # docker-compose로 컨테이너 실행
+            sudo docker-compose up -d
             
-            # 컨테이너 시작 대기
+            # 사용하지 않는 이미지 정리
+            sudo docker image prune -f
+            
+            # 컨테이너 상태 확인
             echo "Waiting for application to start..."
             sleep 15
             
-            # 헬스 체크
-            if docker ps | grep -q spring-app; then
-              echo "✅ Application started successfully!"
-              docker logs spring-app --tail=50
+            # 컨테이너 실행 확인
+            if sudo docker-compose ps | grep -q "Up"; then
+              echo "✅ Application started successfully"
+              sudo docker-compose logs --tail=50
             else
               echo "❌ Application failed to start"
-              docker logs spring-app
+              sudo docker-compose logs
               exit 1
             fi
+      
+      # AWS 보안 그룹에서 GitHub Actions IP 제거
+      - name: Remove Github Actions IP from Security Group
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port ${{ secrets.PORT }} --cidr ${{ steps.ip.outputs.ipv4 }}/32
