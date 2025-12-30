@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [release]
 
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/spring-app
+  DOCKER_TAG: ${{ github.sha }}
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     
     steps:
@@ -26,50 +30,89 @@ jobs:
       - name: Test with Gradle
         run: ./gradlew test
         
-      - name: Copy files via SSH
-        uses: appleboy/scp-action@master
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER_NAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          source: ".,!build,!.git,!.github"
-          target: "/home/ubuntu/spring-server"
+          name: test-results
+          path: build/test-results/
 
-  deploy:
-    needs: build
-    name: deploy
+  build-and-push:
+    needs: test
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
     
     steps:
-      - name: Executing remote SSH commands
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+      
+      - name: Image digest
+        run: echo "Image pushed successfully!"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+    
+    steps:
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
-          key: ${{ secrets.KEY }}
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER_NAME }}
+          key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            cd /home/ubuntu/spring-server
+            # Docker Hub 로그인 (필요시)
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             
-            # Stop existing containers if running
-            docker-compose down || true
+            # 최신 이미지 pull
+            docker pull ${{ env.DOCKER_IMAGE }}:latest
             
-            # Remove old images to save space
-            docker system prune -f || true
+            # 기존 컨테이너 중지 및 제거
+            docker stop spring-app || true
+            docker rm spring-app || true
             
-            # Build and start containers
-            docker-compose up --build -d
+            # 새 컨테이너 실행
+            docker run -d \
+              --name spring-app \
+              -p 8080:8080 \
+              --restart unless-stopped \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              ${{ env.DOCKER_IMAGE }}:latest
             
-            # Wait for application to start
-            sleep 30
+            # 이전 이미지 정리
+            docker image prune -f
             
-            # Check if container is running
-            if docker-compose ps | grep -q "Up"; then
-              echo "Application started successfully with Docker Compose"
-              docker-compose logs --tail=50
+            # 컨테이너 시작 대기
+            echo "Waiting for application to start..."
+            sleep 15
+            
+            # 헬스 체크
+            if docker ps | grep -q spring-app; then
+              echo "✅ Application started successfully!"
+              docker logs spring-app --tail=50
             else
-              echo "Application failed to start"
-              docker-compose logs
+              echo "❌ Application failed to start"
+              docker logs spring-app
               exit 1
             fi
