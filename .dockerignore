@@ -33,3 +33,9 @@ logs/
 
 # Generated files
 src/main/generated/
+
+.git
+.github
+.gradle
+build
+*.md
