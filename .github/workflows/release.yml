@@ -72,12 +72,23 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            cd /home/ubuntu/spring-server
+            # Git 저장소가 없으면 clone, 있으면 pull
+            if [ ! -d /home/ubuntu/spring-server/.git ]; then
+              echo "📦 Git repository not found. Cloning repository..."
+              cd /home/ubuntu
+              rm -rf spring-server
+              git clone https://github.com/Co1nsight/CoInsight.git spring-server
+              cd spring-server
+              git checkout release
+            else
+              echo "📦 Git repository found. Pulling latest changes..."
+              cd /home/ubuntu/spring-server
+              git fetch origin
+              git checkout release
+              git pull origin release
+            fi
 
-            # Git 저장소에서 최신 설정 파일 가져오기
-            git fetch origin
-            git checkout release
-            git pull origin release
+            cd /home/ubuntu/spring-server
 
             # .env 파일이 없으면 생성
             if [ ! -f .env ]; then
