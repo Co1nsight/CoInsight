@@ -65,15 +65,20 @@ jobs:
 
       # 필요한 파일만 EC2에 복사
       - name: Copy docker-compose files to EC2
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER_NAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          source: "docker-compose.yml,nginx/"
-          target: "/home/ubuntu/spring-server/"
-          strip_components: 0
+        run: |
+          # SSH key를 임시 파일로 저장
+          echo "${{ secrets.KEY }}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+          # EC2에 디렉토리 생성
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER_NAME }}@${{ secrets.HOST }} "mkdir -p /home/ubuntu/spring-server/nginx"
+
+          # 파일 복사
+          scp -i /tmp/ssh_key -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} docker-compose.yml ${{ secrets.USER_NAME }}@${{ secrets.HOST }}:/home/ubuntu/spring-server/
+          scp -i /tmp/ssh_key -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} -r nginx/* ${{ secrets.USER_NAME }}@${{ secrets.HOST }}:/home/ubuntu/spring-server/nginx/
+
+          # SSH key 삭제
+          rm -f /tmp/ssh_key
 
       # SSH로 EC2 접속 및 배포
       - name: Deploy to EC2 with Docker Compose
