@@ -62,7 +62,19 @@ jobs:
         run: |
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port ${{ secrets.PORT }} --cidr ${{ steps.ip.outputs.ipv4 }}/32
         continue-on-error: true
-      
+
+      # 필요한 파일만 EC2에 복사
+      - name: Copy docker-compose files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER_NAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          source: "docker-compose.yml,nginx/"
+          target: "/home/ubuntu/spring-server/"
+          strip_components: 0
+
       # SSH로 EC2 접속 및 배포
       - name: Deploy to EC2 with Docker Compose
         uses: appleboy/ssh-action@master
@@ -72,22 +84,6 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # Git 저장소가 없으면 clone, 있으면 pull
-            if [ ! -d /home/ubuntu/spring-server/.git ]; then
-              echo "📦 Git repository not found. Cloning repository..."
-              cd /home/ubuntu
-              rm -rf spring-server
-              git clone https://github.com/Co1nsight/CoInsight.git spring-server
-              cd spring-server
-              git checkout release
-            else
-              echo "📦 Git repository found. Pulling latest changes..."
-              cd /home/ubuntu/spring-server
-              git fetch origin
-              git checkout release
-              git pull origin release
-            fi
-
             cd /home/ubuntu/spring-server
 
             # .env 파일이 없으면 생성
