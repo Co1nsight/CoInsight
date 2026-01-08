@@ -63,23 +63,6 @@ jobs:
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port ${{ secrets.PORT }} --cidr ${{ steps.ip.outputs.ipv4 }}/32
         continue-on-error: true
 
-      # 필요한 파일만 EC2에 복사
-      - name: Copy docker-compose files to EC2
-        run: |
-          # SSH key를 임시 파일로 저장
-          echo "${{ secrets.KEY }}" > /tmp/ssh_key
-          chmod 600 /tmp/ssh_key
-
-          # EC2에 디렉토리 생성
-          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER_NAME }}@${{ secrets.HOST }} "mkdir -p /home/ubuntu/spring-server/nginx"
-
-          # 파일 복사
-          scp -i /tmp/ssh_key -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} docker-compose.yml ${{ secrets.USER_NAME }}@${{ secrets.HOST }}:/home/ubuntu/spring-server/
-          scp -i /tmp/ssh_key -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} -r nginx/* ${{ secrets.USER_NAME }}@${{ secrets.HOST }}:/home/ubuntu/spring-server/nginx/
-
-          # SSH key 삭제
-          rm -f /tmp/ssh_key
-
       # SSH로 EC2 접속 및 배포
       - name: Deploy to EC2 with Docker Compose
         uses: appleboy/ssh-action@master
@@ -89,6 +72,26 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
+            # Git 저장소 없으면 sparse-checkout으로 필요한 파일만 clone
+            if [ ! -d /home/ubuntu/spring-server/.git ]; then
+              echo "📦 Setting up sparse checkout..."
+              mkdir -p /home/ubuntu/spring-server
+              cd /home/ubuntu/spring-server
+              git init
+              git remote add origin https://github.com/Co1nsight/CoInsight.git
+              git config core.sparseCheckout true
+              echo "docker-compose.yml" >> .git/info/sparse-checkout
+              echo "nginx/" >> .git/info/sparse-checkout
+              git fetch --depth=1 origin release
+              git checkout release
+            else
+              echo "📦 Updating configuration files..."
+              cd /home/ubuntu/spring-server
+              git fetch --depth=1 origin release
+              git checkout release
+              git pull origin release
+            fi
+
             cd /home/ubuntu/spring-server
 
             # .env 파일이 없으면 생성
