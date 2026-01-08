@@ -73,31 +73,36 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /home/ubuntu/spring-server
-            
+
+            # Git 저장소에서 최신 설정 파일 가져오기
+            git fetch origin
+            git checkout release
+            git pull origin release
+
             # .env 파일이 없으면 생성
             if [ ! -f .env ]; then
               echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
             fi
-      
+
             # Docker 로그인
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-            
+
             # 기존 컨테이너 중지 및 제거
             sudo docker-compose down
-            
+
             # 최신 이미지 pull
             sudo docker pull ${{ env.DOCKER_IMAGE }}:latest
-            
+
             # docker-compose로 컨테이너 실행
             sudo docker-compose up -d
-            
+
             # 사용하지 않는 이미지 정리
             sudo docker image prune -f
-            
+
             # 컨테이너 상태 확인
             echo "Waiting for application to start..."
             sleep 15
-            
+
             # 컨테이너 실행 확인
             if sudo docker-compose ps | grep -q "Up"; then
               echo "✅ Application started successfully"
