@@ -62,7 +62,7 @@ jobs:
         run: |
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port ${{ secrets.PORT }} --cidr ${{ steps.ip.outputs.ipv4 }}/32
         continue-on-error: true
-
+      
       # SSH로 EC2 접속 및 배포
       - name: Deploy to EC2 with Docker Compose
         uses: appleboy/ssh-action@master
@@ -72,52 +72,32 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # Git 저장소 없으면 sparse-checkout으로 필요한 파일만 clone
-            if [ ! -d /home/ubuntu/spring-server/.git ]; then
-              echo "📦 Setting up sparse checkout..."
-              mkdir -p /home/ubuntu/spring-server
-              cd /home/ubuntu/spring-server
-              git init
-              git remote add origin https://github.com/Co1nsight/CoInsight.git
-              git config core.sparseCheckout true
-              echo "docker-compose.yml" >> .git/info/sparse-checkout
-              echo "nginx/" >> .git/info/sparse-checkout
-              git fetch --depth=1 origin release
-              git checkout release
-            else
-              echo "📦 Updating configuration files..."
-              cd /home/ubuntu/spring-server
-              git fetch --depth=1 origin release
-              git checkout release
-              git pull origin release
-            fi
-
             cd /home/ubuntu/spring-server
-
+            
             # .env 파일이 없으면 생성
             if [ ! -f .env ]; then
               echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
             fi
-
+      
             # Docker 로그인
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
+            
             # 기존 컨테이너 중지 및 제거
             sudo docker-compose down
-
+            
             # 최신 이미지 pull
             sudo docker pull ${{ env.DOCKER_IMAGE }}:latest
-
+            
             # docker-compose로 컨테이너 실행
             sudo docker-compose up -d
-
+            
             # 사용하지 않는 이미지 정리
             sudo docker image prune -f
-
+            
             # 컨테이너 상태 확인
             echo "Waiting for application to start..."
             sleep 15
-
+            
             # 컨테이너 실행 확인
             if sudo docker-compose ps | grep -q "Up"; then
               echo "✅ Application started successfully"
