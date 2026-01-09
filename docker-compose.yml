@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   coanalysis-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/spring-app:latest
     ports:
       - "8080:8080"
     environment:
