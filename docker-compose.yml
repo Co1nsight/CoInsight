@@ -3,8 +3,8 @@ version: '3.8'
 services:
   coanalysis-app:
     image: ${DOCKER_USERNAME}/spring-app:latest
-    ports:
-      - "8080:8080"
+    # ports:  # 외부 노출 제거 - frontend(nginx)를 통해서만 접근
+    #   - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_H2_CONSOLE_ENABLED=true
@@ -21,24 +21,31 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - app-network
 
-  nginx:
-    image: nginx:latest
+  frontend:
+    image: ${DOCKER_USERNAME}/coinsight-frontend:latest
+    container_name: coinsight-frontend
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - coanalysis-app
-    restart: always
+    restart: unless-stopped
+    networks:
+      - app-network
 
   certbot:
     image: certbot/certbot
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    # 인증서 발급 후 자동 갱신을 위한 entrypoint (처음 발급 시에는 docker-compose run --rm certbot 사용)
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;'"
+
+networks:
+  app-network:
+    driver: bridge
