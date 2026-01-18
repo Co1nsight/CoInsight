@@ -3,7 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.5.9'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
-
+3
 group = 'com.coanalysis'
 version = '0.0.1-SNAPSHOT'
 description = 'coin traider helper'
@@ -22,32 +22,36 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/release' } // Spring 공식 저장소 추가
 }
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.1'
+
+	// openfeign 버전 대신 검증된 공식 QueryDSL 5.x 사용 (Jakarta 지원용)
+	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
 	implementation 'org.apache.commons:commons-lang3:3.18.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
-	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.1'
+
+	// Annotation Processor도 공식 버전으로 변경
+	annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+
 	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
-}
-
-jar {
-	enabled = false
 }
 
 def generated = 'src/main/generated'
