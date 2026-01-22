@@ -14,4 +14,5 @@ public interface SearchNewsControllerSwagger {
     })
     ResponseEntity<SearchNewsResponse> searchById(Long id);
 
+
 }

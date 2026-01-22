@@ -20,6 +20,8 @@ import java.util.Optional;
 @RequestMapping("/api/v1/news")
 @RequiredArgsConstructor
 public class SearchNewsController implements SearchNewsControllerSwagger {
+    //in으로 들어오는 adapter -> 의존성 방향이 안쪽(in port)이므로 SearchNewsUseCase에만 의존
+    // searchNewsQuery는 CQRS패턴으로 이 클래스에서 바로 의존
 
     private final SearchNewsUseCase searchNewsUseCase;
 
