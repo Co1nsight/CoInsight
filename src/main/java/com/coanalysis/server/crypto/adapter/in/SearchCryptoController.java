@@ -4,15 +4,13 @@ import com.coanalysis.server.crypto.adapter.in.dto.SearchCryptoResponse;
 import com.coanalysis.server.crypto.adapter.in.swagger.SearchCryptoControllerSwagger;
 import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.crypto.application.port.in.SearchCryptoUsecase;
-import com.coanalysis.server.news.application.port.in.SearchNewsUseCase;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/crypto")
@@ -26,5 +24,22 @@ public class SearchCryptoController implements SearchCryptoControllerSwagger {
         List<Crypto> cryptoList = searchCryptoUsecase.searchByKeyword(keyword);
 
         return ResponseEntity.ok(SearchCryptoResponse.from(cryptoList));
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<SearchCryptoResponse> findById(@PathVariable(value = "id") Long id) {
+
+        if (ObjectUtils.isEmpty(id)) {
+            return ResponseEntity.ok(null);
+        }
+
+        Optional<Crypto> cryptoIf = searchCryptoUsecase.findById(id);
+
+        if (cryptoIf.isEmpty()) {
+            return ResponseEntity.ok(null);
+        }
+
+        return ResponseEntity.ok(SearchCryptoResponse.of(cryptoIf.get()));
     }
 }

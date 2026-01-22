@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -16,5 +17,10 @@ public class SearchCryptoAdapter implements SearchCryptoPort {
     @Override
     public List<Crypto> searchByKeyword(String keyword) {
         return cryptoRepository.searchByKeyword(keyword);
+    }
+
+    @Override
+    public Optional<Crypto> findById(Long id) {
+        return cryptoRepository.findById(id);
     }
 }
