@@ -16,4 +16,20 @@ public class Crypto extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    @Column(nullable = false, length = 4)
+    private String ticker;   //BTC,ETH
+
+    @Column(nullable = false)
+    private String name;
+
+    private String logoUrl;
+
+    private double currentPrice; //현재가
+
+    private double tradingVolume; //거래대금
+
+
+
+
+
 }

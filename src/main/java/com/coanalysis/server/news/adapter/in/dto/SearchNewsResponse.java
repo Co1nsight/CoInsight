@@ -17,6 +17,6 @@ public class SearchNewsResponse {
         return SearchNewsResponse.builder()
                 .id(news.getId())
                 .build();
-    }
+    } //news 전체를 반환하면 안되니까 getId(), build()로 id만 반환
 
 }
