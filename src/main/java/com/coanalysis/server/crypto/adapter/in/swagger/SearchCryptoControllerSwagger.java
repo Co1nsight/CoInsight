@@ -14,4 +14,10 @@ public interface SearchCryptoControllerSwagger {
             @Parameter(name = "keyword")
     })
     ResponseEntity<List<SearchCryptoResponse>> searchByKeyword(String keyword);
+
+    @Schema(name = "코인 상세 조회")
+    @Parameters({
+            @Parameter(name = "id")
+    })
+    ResponseEntity<SearchCryptoResponse> findById(Long id);
 }
