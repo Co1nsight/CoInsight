@@ -99,6 +99,7 @@ jobs:
             # .env 파일이 없으면 생성
             if [ ! -f .env ]; then
               echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
+              echo "HUGGINGFACE_API_TOKEN=${{ secrets.HUGGINGFACE_API_TOKEN }}" > .env
             fi
 
             # Docker 로그인
