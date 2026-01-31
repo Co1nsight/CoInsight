@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
-                .body(ApiResponse.fail(errorCode.getCode(), e.getMessage()));
+                .body(ApiResponse.fail(errorCode.getHttpStatus(), e.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.INVALID_INPUT_VALUE;
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
-                .body(ApiResponse.fail(errorCode.getCode(), e.getMessage()));
+                .body(ApiResponse.fail(errorCode.getHttpStatus(), e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
@@ -34,6 +34,6 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
-                .body(ApiResponse.fail(errorCode.getCode(), errorCode.getMessage()));
+                .body(ApiResponse.fail(errorCode.getHttpStatus(), errorCode.getMessage()));
     }
 }
