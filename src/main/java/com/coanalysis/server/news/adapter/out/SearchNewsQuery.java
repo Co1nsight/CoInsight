@@ -17,4 +17,8 @@ public class SearchNewsQuery {
         return repository.searchAllNews();
     }
 
+    public List<SearchNewsResponse> searchByKeyword(String keyword) {
+        return repository.searchByKeyword(keyword);
+    }
+
 }
