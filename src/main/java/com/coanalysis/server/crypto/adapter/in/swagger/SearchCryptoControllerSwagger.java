@@ -100,9 +100,12 @@ public interface SearchCryptoControllerSwagger {
                     코인 티커를 기반으로 암호화폐 상세 정보를 조회합니다.
 
                     - 코인의 현재가, 거래대금 등 상세 정보를 제공합니다.
+                    - market 파라미터로 결제 통화(마켓)를 선택할 수 있습니다.
                     - 존재하지 않는 티커로 조회 시 404 에러가 반환됩니다.
 
                     **티커 예시:** BTC, ETH, XRP, SOL 등
+
+                    **지원 마켓:** KRW (기본값), BTC, USDT
                     """
     )
     @ApiResponses(value = {
@@ -177,5 +180,11 @@ public interface SearchCryptoControllerSwagger {
                     description = "코인 티커 (심볼)",
                     required = true,
                     example = "BTC"
-            ) String ticker);
+            ) String ticker,
+            @Parameter(
+                    name = "market",
+                    description = "결제 통화(마켓) - KRW, BTC, USDT 중 선택",
+                    required = false,
+                    example = "KRW"
+            ) String market);
 }

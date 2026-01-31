@@ -30,14 +30,16 @@ public class SearchCryptoController implements SearchCryptoControllerSwagger {
 
     @Override
     @GetMapping("/{ticker}")
-    public ResponseEntity<ApiResponse<SearchCryptoResponse>> findByTicker(@PathVariable(value = "ticker") String ticker) {
+    public ResponseEntity<ApiResponse<SearchCryptoResponse>> findByTicker(
+            @PathVariable(value = "ticker") String ticker,
+            @RequestParam(value = "market", defaultValue = "KRW") String market) {
         if (ObjectUtils.isEmpty(ticker)) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "코인 티커가 필요합니다.");
         }
 
-        Crypto crypto = searchCryptoUsecase.findByTicker(ticker)
+        Crypto crypto = searchCryptoUsecase.findByTickerAndMarket(ticker, market)
                 .orElseThrow(() -> new CustomException(ErrorCode.CRYPTO_NOT_FOUND));
 
-        return ResponseEntity.ok(ApiResponse.success(SearchCryptoResponse.of(crypto)));
+        return ResponseEntity.ok(ApiResponse.success(SearchCryptoResponse.of(crypto, market)));
     }
 }
