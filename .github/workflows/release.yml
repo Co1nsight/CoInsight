@@ -96,11 +96,9 @@ jobs:
           script: |
             cd /home/ubuntu/spring-server
 
-            # .env 파일이 없으면 생성
-            if [ ! -f .env ]; then
-              echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
-              echo "HUGGINGFACE_API_TOKEN=${{ secrets.HUGGINGFACE_API_TOKEN }}" > .env
-            fi
+            # .env 파일 생성 (항상 최신 값으로 덮어쓰기)
+            echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" > .env
+            echo "HUGGINGFACE_API_TOKEN=${{ secrets.HUGGINGFACE_API_TOKEN }}" >> .env
 
             # Docker 로그인
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
