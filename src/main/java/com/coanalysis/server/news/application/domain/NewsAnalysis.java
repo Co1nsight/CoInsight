@@ -4,30 +4,26 @@ import com.coanalysis.server.infrastructure.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
-@Table(name = "NEWS")
+@Table(name = "NEWS_ANALYSIS")
 @Entity
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class News extends BaseEntity {
+public class NewsAnalysis extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
+    @OneToOne
+    @JoinColumn(name = "news_id", nullable = false)
+    private News news;
 
-    @Column(nullable = false)
-    private String originalLink;
+    private String summary;
 
-    private String publisher;
+    private Double sentimentScore;
 
-    private LocalDateTime publishedAt;
-
-    private String content;
+    private String sentimentLabel;
 
 }

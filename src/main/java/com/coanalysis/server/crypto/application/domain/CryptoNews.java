@@ -1,10 +1,8 @@
 package com.coanalysis.server.crypto.application.domain;
 
-import com.coanalysis.server.crypto.application.domain.id.CryptoNewsId;
 import com.coanalysis.server.infrastructure.entity.BaseEntity;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.coanalysis.server.news.application.domain.News;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Table(name = "CRYPTO_NEWS_MAPPING")
@@ -15,7 +13,16 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CryptoNews extends BaseEntity {
 
-    @EmbeddedId
-    private CryptoNewsId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "crypto_id", nullable = false)
+    private Crypto crypto;
+
+    @ManyToOne
+    @JoinColumn(name = "news_id", nullable = false)
+    private News news;
 
 }
