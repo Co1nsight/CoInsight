@@ -8,4 +8,6 @@ public interface NewsDslRepository {
 
     List<SearchNewsResponse> searchAllNews();
 
+    List<SearchNewsResponse> searchByKeyword(String keyword);
+
 }
