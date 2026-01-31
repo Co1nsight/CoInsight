@@ -9,4 +9,6 @@ public interface SearchCryptoUsecase {
     List<Crypto> searchByKeyword(String keyword);
 
     Optional<Crypto> findByTicker(String ticker);
+
+    Optional<Crypto> findByTickerAndMarket(String ticker, String market);
 }
