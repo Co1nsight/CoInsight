@@ -16,7 +16,7 @@ public class Crypto extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false, length = 4)
+    @Column(nullable = false, length = 10)
     private String ticker;   //BTC,ETH
 
     @Column(nullable = false)
