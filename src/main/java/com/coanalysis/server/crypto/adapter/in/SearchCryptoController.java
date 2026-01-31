@@ -4,13 +4,15 @@ import com.coanalysis.server.crypto.adapter.in.dto.SearchCryptoResponse;
 import com.coanalysis.server.crypto.adapter.in.swagger.SearchCryptoControllerSwagger;
 import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.crypto.application.port.in.SearchCryptoUsecase;
+import com.coanalysis.server.infrastructure.exception.CustomException;
+import com.coanalysis.server.infrastructure.exception.ErrorCode;
+import com.coanalysis.server.infrastructure.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/crypto")
@@ -19,27 +21,23 @@ public class SearchCryptoController implements SearchCryptoControllerSwagger {
 
     private final SearchCryptoUsecase searchCryptoUsecase;
 
+    @Override
     @GetMapping("/search")
-    public ResponseEntity<List<SearchCryptoResponse>> searchByKeyword(@RequestParam String keyword) {
+    public ResponseEntity<ApiResponse<List<SearchCryptoResponse>>> searchByKeyword(@RequestParam String keyword) {
         List<Crypto> cryptoList = searchCryptoUsecase.searchByKeyword(keyword);
-
-        return ResponseEntity.ok(SearchCryptoResponse.from(cryptoList));
+        return ResponseEntity.ok(ApiResponse.success(SearchCryptoResponse.from(cryptoList)));
     }
 
-
+    @Override
     @GetMapping("/{id}")
-    public ResponseEntity<SearchCryptoResponse> findById(@PathVariable(value = "id") Long id) {
-
+    public ResponseEntity<ApiResponse<SearchCryptoResponse>> findById(@PathVariable(value = "id") Long id) {
         if (ObjectUtils.isEmpty(id)) {
-            return ResponseEntity.ok(null);
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "코인 ID가 필요합니다.");
         }
 
-        Optional<Crypto> cryptoIf = searchCryptoUsecase.findById(id);
+        Crypto crypto = searchCryptoUsecase.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.CRYPTO_NOT_FOUND));
 
-        if (cryptoIf.isEmpty()) {
-            return ResponseEntity.ok(null);
-        }
-
-        return ResponseEntity.ok(SearchCryptoResponse.of(cryptoIf.get()));
+        return ResponseEntity.ok(ApiResponse.success(SearchCryptoResponse.of(crypto)));
     }
 }

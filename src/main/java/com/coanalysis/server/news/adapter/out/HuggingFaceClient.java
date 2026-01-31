@@ -1,5 +1,7 @@
 package com.coanalysis.server.news.adapter.out;
 
+import com.coanalysis.server.infrastructure.exception.CustomException;
+import com.coanalysis.server.infrastructure.exception.ErrorCode;
 import com.coanalysis.server.news.adapter.out.dto.HuggingFaceRequest;
 import com.coanalysis.server.news.adapter.out.dto.HuggingFaceSentimentResult;
 import com.coanalysis.server.news.adapter.out.dto.SentimentAnalysisResult;
@@ -45,8 +47,7 @@ public class HuggingFaceClient {
 
     public SentimentAnalysisResult analyzeSentiment(String text) {
         if (text == null || text.isBlank()) {
-            log.warn("Empty text provided for sentiment analysis");
-            return SentimentAnalysisResult.empty();
+            throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_EMPTY_TEXT);
         }
 
         String truncatedText = truncateText(text);
@@ -75,8 +76,7 @@ public class HuggingFaceClient {
             );
 
             if (response.getBody() == null || response.getBody().isBlank()) {
-                log.warn("Empty response from HuggingFace API");
-                return SentimentAnalysisResult.empty();
+                throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_FAILED, "API 응답이 비어있습니다.");
             }
 
             log.info("HuggingFace API raw response: {}", response.getBody());
@@ -87,8 +87,7 @@ public class HuggingFaceClient {
             );
 
             if (parsedResponse.isEmpty()) {
-                log.warn("Empty parsed response from HuggingFace API");
-                return SentimentAnalysisResult.empty();
+                throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_FAILED, "API 응답 파싱 결과가 비어있습니다.");
             }
 
             List<HuggingFaceSentimentResult> results = parsedResponse.get(0);
@@ -97,12 +96,14 @@ public class HuggingFaceClient {
                     .toList());
             return parseResults(results);
 
+        } catch (CustomException e) {
+            throw e;
         } catch (RestClientException e) {
             log.error("Failed to call HuggingFace API: {}", e.getMessage());
-            return SentimentAnalysisResult.empty();
+            throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_API_ERROR, e.getMessage());
         } catch (Exception e) {
             log.error("Failed to parse HuggingFace API response: {}", e.getMessage());
-            return SentimentAnalysisResult.empty();
+            throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_PARSE_ERROR, e.getMessage());
         }
     }
 

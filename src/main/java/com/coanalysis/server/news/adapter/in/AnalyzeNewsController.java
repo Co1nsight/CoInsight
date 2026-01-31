@@ -1,5 +1,6 @@
 package com.coanalysis.server.news.adapter.in;
 
+import com.coanalysis.server.infrastructure.response.ApiResponse;
 import com.coanalysis.server.news.adapter.in.dto.AnalyzeNewsRequest;
 import com.coanalysis.server.news.adapter.in.dto.AnalyzeNewsResponse;
 import com.coanalysis.server.news.adapter.in.swagger.AnalyzeNewsControllerSwagger;
@@ -21,13 +22,13 @@ public class AnalyzeNewsController implements AnalyzeNewsControllerSwagger {
 
     @Override
     @GetMapping("/{newsId}")
-    public ResponseEntity<AnalyzeNewsResponse> analyzeById(
+    public ResponseEntity<ApiResponse<AnalyzeNewsResponse>> analyzeById(
             @PathVariable Long newsId,
             @RequestHeader(value = "X-HUGGINGFACE-API-TOKEN", required = false) String apiToken) {
         try {
             apiTokenHolder.setToken(apiToken);
             NewsAnalysis analysis = analyzeNewsUseCase.analyzeNews(newsId);
-            return ResponseEntity.ok(AnalyzeNewsResponse.of(analysis));
+            return ResponseEntity.ok(ApiResponse.success(AnalyzeNewsResponse.of(analysis)));
         } finally {
             apiTokenHolder.clear();
         }
@@ -35,13 +36,13 @@ public class AnalyzeNewsController implements AnalyzeNewsControllerSwagger {
 
     @Override
     @PostMapping
-    public ResponseEntity<AnalyzeNewsResponse> analyzeText(
+    public ResponseEntity<ApiResponse<AnalyzeNewsResponse>> analyzeText(
             @RequestBody AnalyzeNewsRequest request,
             @RequestHeader(value = "X-HUGGINGFACE-API-TOKEN", required = false) String apiToken) {
         try {
             apiTokenHolder.setToken(apiToken);
             NewsAnalysis analysis = analyzeNewsUseCase.analyzeText(request.getTitle(), request.getContent());
-            return ResponseEntity.ok(AnalyzeNewsResponse.of(analysis));
+            return ResponseEntity.ok(ApiResponse.success(AnalyzeNewsResponse.of(analysis)));
         } finally {
             apiTokenHolder.clear();
         }
