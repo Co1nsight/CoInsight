@@ -12,10 +12,8 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Crypto extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
 
+    @Id
     @Column(nullable = false, length = 10)
     private String ticker;   //BTC,ETH
 

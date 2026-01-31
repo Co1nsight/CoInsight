@@ -14,8 +14,7 @@ import java.util.List;
 @Schema(description = "암호화폐 검색 결과")
 public class SearchCryptoResponse {
 
-    @Schema(description = "코인 고유 ID", example = "1")
-    private Long id;
+
 
     @Schema(description = "코인 티커 (심볼)", example = "BTC")
     private String ticker;
@@ -35,7 +34,6 @@ public class SearchCryptoResponse {
 
     public static SearchCryptoResponse of(Crypto crypto){
         return SearchCryptoResponse.builder()
-                .id(crypto.getId())
                 .ticker(crypto.getTicker())
                 .name(crypto.getName())
                 .logoUrl(crypto.getLogoUrl())
