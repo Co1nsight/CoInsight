@@ -45,7 +45,6 @@ public interface SearchCryptoControllerSwagger {
                                                 "success": true,
                                                 "data": [
                                                     {
-                                                        "id": 1,
                                                         "ticker": "BTC",
                                                         "name": "비트코인",
                                                         "logoUrl": "https://example.com/btc.png",
@@ -53,7 +52,6 @@ public interface SearchCryptoControllerSwagger {
                                                         "tradingVolume": 500000000000.0
                                                     },
                                                     {
-                                                        "id": 2,
                                                         "ticker": "BCH",
                                                         "name": "비트코인캐시",
                                                         "logoUrl": "https://example.com/bch.png",
@@ -99,10 +97,12 @@ public interface SearchCryptoControllerSwagger {
     @Operation(
             summary = "코인 상세 조회",
             description = """
-                    코인 ID를 기반으로 암호화폐 상세 정보를 조회합니다.
+                    코인 티커를 기반으로 암호화폐 상세 정보를 조회합니다.
 
                     - 코인의 현재가, 거래대금 등 상세 정보를 제공합니다.
-                    - 존재하지 않는 ID로 조회 시 404 에러가 반환됩니다.
+                    - 존재하지 않는 티커로 조회 시 404 에러가 반환됩니다.
+
+                    **티커 예시:** BTC, ETH, XRP, SOL 등
                     """
     )
     @ApiResponses(value = {
@@ -118,7 +118,6 @@ public interface SearchCryptoControllerSwagger {
                                             {
                                                 "success": true,
                                                 "data": {
-                                                    "id": 1,
                                                     "ticker": "BTC",
                                                     "name": "비트코인",
                                                     "logoUrl": "https://example.com/btc.png",
@@ -133,18 +132,18 @@ public interface SearchCryptoControllerSwagger {
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "잘못된 요청 (ID 누락)",
+                    description = "잘못된 요청 (티커 누락)",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "ID 누락 오류",
+                                    name = "티커 누락 오류",
                                     value = """
                                             {
                                                 "success": false,
                                                 "data": null,
                                                 "error": {
                                                     "code": "INVALID_INPUT_VALUE",
-                                                    "message": "코인 ID가 필요합니다."
+                                                    "message": "코인 티커가 필요합니다."
                                                 }
                                             }
                                             """
@@ -172,11 +171,11 @@ public interface SearchCryptoControllerSwagger {
                     )
             )
     })
-    ResponseEntity<ApiResponse<SearchCryptoResponse>> findById(
+    ResponseEntity<ApiResponse<SearchCryptoResponse>> findByTicker(
             @Parameter(
-                    name = "id",
-                    description = "코인 고유 ID",
+                    name = "ticker",
+                    description = "코인 티커 (심볼)",
                     required = true,
-                    example = "1"
-            ) Long id);
+                    example = "BTC"
+            ) String ticker);
 }

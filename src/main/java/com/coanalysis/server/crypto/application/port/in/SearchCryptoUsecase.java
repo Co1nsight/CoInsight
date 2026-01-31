@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface SearchCryptoUsecase {
     List<Crypto> searchByKeyword(String keyword);
 
-    Optional<Crypto> findById(Long id);
+    Optional<Crypto> findByTicker(String ticker);
 }
