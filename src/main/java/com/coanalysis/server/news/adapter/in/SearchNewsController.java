@@ -14,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,7 +44,7 @@ public class SearchNewsController implements SearchNewsControllerSwagger {
     public ResponseEntity<ApiResponse<List<SearchNewsResponse>>> searchNewsList() {
         List<SearchNewsResponse> newsList = searchNewsQuery.searchAllNews();
 
-        return ResponseEntity.ok(newsList);
+        return ResponseEntity.ok(ApiResponse.success(newsList));
     } //바로 out으로  단순 페이지 쿼리로 꼽는 애들이니까 서치뉴스쿼리를 따로 만들어서 바로 꽂아버림
     //usecase가 dto를 거치면 안됨 response 객체가 service를 거치면 안됨
 
