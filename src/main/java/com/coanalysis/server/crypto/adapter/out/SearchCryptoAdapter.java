@@ -20,7 +20,7 @@ public class SearchCryptoAdapter implements SearchCryptoPort {
     }
 
     @Override
-    public Optional<Crypto> findById(Long id) {
-        return cryptoRepository.findById(id);
+    public Optional<Crypto> findByTicker(String ticker) {
+        return cryptoRepository.findById(ticker);
     }
 }

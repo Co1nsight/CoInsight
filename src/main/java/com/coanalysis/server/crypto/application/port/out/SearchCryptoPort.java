@@ -7,5 +7,5 @@ import java.util.Optional;
 
 public interface SearchCryptoPort {
     List<Crypto> searchByKeyword(String keyword);
-    Optional<Crypto> findById(Long id);
+    Optional<Crypto> findByTicker(String ticker);
 }

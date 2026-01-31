@@ -29,13 +29,13 @@ public class SearchCryptoController implements SearchCryptoControllerSwagger {
     }
 
     @Override
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<SearchCryptoResponse>> findById(@PathVariable(value = "id") Long id) {
-        if (ObjectUtils.isEmpty(id)) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "코인 ID가 필요합니다.");
+    @GetMapping("/{ticker}")
+    public ResponseEntity<ApiResponse<SearchCryptoResponse>> findByTicker(@PathVariable(value = "ticker") String ticker) {
+        if (ObjectUtils.isEmpty(ticker)) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "코인 티커가 필요합니다.");
         }
 
-        Crypto crypto = searchCryptoUsecase.findById(id)
+        Crypto crypto = searchCryptoUsecase.findByTicker(ticker)
                 .orElseThrow(() -> new CustomException(ErrorCode.CRYPTO_NOT_FOUND));
 
         return ResponseEntity.ok(ApiResponse.success(SearchCryptoResponse.of(crypto)));

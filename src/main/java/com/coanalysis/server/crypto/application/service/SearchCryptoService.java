@@ -21,7 +21,7 @@ public class SearchCryptoService implements SearchCryptoUsecase {
     }
 
     @Override
-    public Optional<Crypto> findById(Long id) {
-        return searchCryptoPort.findById(id);
+    public Optional<Crypto> findByTicker(String ticker) {
+        return searchCryptoPort.findByTicker(ticker);
     }
 }
