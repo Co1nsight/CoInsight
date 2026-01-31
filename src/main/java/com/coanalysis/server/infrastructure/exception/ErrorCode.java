@@ -24,7 +24,13 @@ public enum ErrorCode {
     SENTIMENT_ANALYSIS_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S004", "API 응답 파싱에 실패했습니다."),
 
     // Crypto
-    CRYPTO_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "암호화폐를 찾을 수 없습니다.");
+    CRYPTO_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "암호화폐를 찾을 수 없습니다."),
+
+    // Bithumb
+    BITHUMB_API_ERROR(HttpStatus.BAD_GATEWAY, "B001", "빗썸 API 호출에 실패했습니다."),
+    BITHUMB_INVALID_MARKET(HttpStatus.BAD_REQUEST, "B002", "지원하지 않는 마켓입니다."),
+    BITHUMB_RATE_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "B003", "API 요청 제한을 초과했습니다."),
+    BITHUMB_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "B004", "API 응답 파싱에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
