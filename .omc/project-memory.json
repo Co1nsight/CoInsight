@@ -1,0 +1,239 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1771163238990,
+  "projectRoot": "/Users/seongmin/coanalysis",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Java/Kotlin",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "build.gradle"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "gradle",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "master",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "build": {
+      "path": "build",
+      "purpose": "Build output",
+      "fileCount": 2,
+      "lastAccessed": 1771163238976,
+      "keyFiles": [
+        "resolvedMainClassName"
+      ]
+    },
+    "gradle": {
+      "path": "gradle",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1771163238976,
+      "keyFiles": []
+    },
+    "nginx": {
+      "path": "nginx",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1771163238977,
+      "keyFiles": [
+        "default.conf"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1771163238977,
+      "keyFiles": []
+    },
+    "src/test": {
+      "path": "src/test",
+      "purpose": "Test files",
+      "fileCount": 0,
+      "lastAccessed": 1771163238979,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 9,
+      "lastAccessed": 1771163617567,
+      "type": "directory"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/NewsRepository.java",
+      "accessCount": 4,
+      "lastAccessed": 1771163857274,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/domain/News.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163608630,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/domain/NewsAnalysis.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163609074,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/crypto/application/domain/CryptoNews.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163609629,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/service/AnalyzeNewsService.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163615528,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/crypto/application/domain/Crypto.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163846856,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/CryptoRepository.java",
+      "accessCount": 3,
+      "lastAccessed": 1771163863493,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/application.properties",
+      "accessCount": 2,
+      "lastAccessed": 1771163521768,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/HuggingFaceClient.java",
+      "accessCount": 2,
+      "lastAccessed": 1771163610758,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/config/DataInitializer.java",
+      "accessCount": 2,
+      "lastAccessed": 1771163616784,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/AnalyzingNewsAdapter.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163486593,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/port/out/AnalyzingNewsPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163487100,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/enums/Sentiment.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163611477,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/domain/CollectedNews.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163782440,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/port/in/CollectNewsUseCase.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163785157,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/port/out/FetchCryptoNewsPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163786224,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/port/out/SaveCollectedNewsPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163787916,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/port/out/FindDuplicateNewsPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163788796,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/application/port/out/MapCryptoNewsPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163790386,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/dto/CryptoCompareNewsResponse.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163799938,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/dto/CryptoCompareNewsItem.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163801636,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/CryptoCompareNewsClient.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163837925,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/CryptoNewsRepository.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163846395,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/NewsCollectionAdapter.java",
+      "accessCount": 1,
+      "lastAccessed": 1771163847070,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
