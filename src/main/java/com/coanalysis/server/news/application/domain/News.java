@@ -19,16 +19,18 @@ public class News extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "TITLE", length = 1000, nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(name = "ORIGINAL_LINK", length = 2500, nullable = false)
     private String originalLink;
 
+    @Column(name = "PUBLISHER", length = 1000)
     private String publisher;
 
     private LocalDateTime publishedAt;
 
+    @Column(name = "CONTENT", columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)

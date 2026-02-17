@@ -20,10 +20,12 @@ public class NewsAnalysis extends BaseEntity {
     @JoinColumn(name = "news_id", nullable = false)
     private News news;
 
+    @Column(name = "SUMMARY", columnDefinition = "TEXT")
     private String summary;
 
     private Double sentimentScore;
 
+    @Column(name = "SENTIMENT_LABEL", length = 1000)
     private String sentimentLabel;
 
 }
