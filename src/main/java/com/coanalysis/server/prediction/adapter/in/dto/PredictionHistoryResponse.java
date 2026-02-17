@@ -1,5 +1,6 @@
 package com.coanalysis.server.prediction.adapter.in.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,8 +46,7 @@ public class PredictionHistoryResponse {
 	private Integer neutralCount;
 
 	@Schema(description = "예측 시점 가격", example = "65000000")
-	@JsonFormat(shape = JsonFormat.Shape.STRING)
-	private Double priceAtPrediction;
+	private String priceAtPrediction;
 
 	@Schema(description = "간격별 검증 결과 목록")
 	private List<VerificationResult> verifications;
@@ -70,7 +70,9 @@ public class PredictionHistoryResponse {
 		this.positiveCount = positiveCount;
 		this.negativeCount = negativeCount;
 		this.neutralCount = neutralCount;
-		this.priceAtPrediction = priceAtPrediction;
+		this.priceAtPrediction = priceAtPrediction != null
+			? BigDecimal.valueOf(priceAtPrediction).toPlainString()
+			: null;
 	}
 
 	@Getter
@@ -84,8 +86,7 @@ public class PredictionHistoryResponse {
 		private String intervalType;
 
 		@Schema(description = "검증 시점 가격", example = "65500000")
-		@JsonFormat(shape = JsonFormat.Shape.STRING)
-		private Double priceAtVerification;
+		private String priceAtVerification;
 
 		@Schema(description = "가격 변동률 (%)", example = "0.77")
 		private Double priceChangePercent;
@@ -96,6 +97,17 @@ public class PredictionHistoryResponse {
 		@Schema(description = "검증 시각", example = "2024-01-15T10:00:00")
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 		private LocalDateTime verifiedAt;
+
+		public VerificationResult(String intervalType, Double priceAtVerification,
+								  Double priceChangePercent, Boolean isSuccess, LocalDateTime verifiedAt) {
+			this.intervalType = intervalType;
+			this.priceAtVerification = priceAtVerification != null
+				? BigDecimal.valueOf(priceAtVerification).toPlainString()
+				: null;
+			this.priceChangePercent = priceChangePercent;
+			this.isSuccess = isSuccess;
+			this.verifiedAt = verifiedAt;
+		}
 	}
 
 	public int getTotalNewsCount() {
