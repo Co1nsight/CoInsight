@@ -12,5 +12,5 @@ public interface SearchCryptoPort {
     Optional<Crypto> findByTicker(String ticker);
 	Set<String> findAllTickers();
 	List<Crypto> findAllByTickers(Set<String> coinTickers);
-
+	List<Crypto> findAllCryptos();
 }

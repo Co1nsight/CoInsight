@@ -45,4 +45,9 @@ public class MapCryptoNewsAdapter implements MapCryptoNewsPort {
 	public Set<String> getAllKnownTickers() {
 		return searchCryptoPort.findAllTickers();
 	}
+
+	@Override
+	public List<Crypto> getAllCryptos() {
+		return searchCryptoPort.findAllCryptos();
+	}
 }

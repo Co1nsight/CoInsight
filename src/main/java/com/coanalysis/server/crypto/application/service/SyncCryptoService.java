@@ -67,6 +67,7 @@ public class SyncCryptoService implements SyncCryptoUsecase {
         return Crypto.builder()
                 .ticker(market.getSymbol())
                 .name(market.getKoreanName())
+                .englishName(market.getEnglishName())
                 .logoUrl(null)  // 로고 URL은 별도 API에서 가져오거나 null로 유지
                 .currentPrice(0)
                 .tradingVolume(0)
