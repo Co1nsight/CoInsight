@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -34,5 +36,42 @@ public class FetchCryptoPriceAdapter implements FetchCryptoPricePort {
         }
 
         return null;
+    }
+
+    @Override
+    public Map<String, Double> fetchAllPrices(List<String> tickers) {
+        Map<String, Double> priceMap = new HashMap<>();
+
+        if (tickers == null || tickers.isEmpty()) {
+            return priceMap;
+        }
+
+        // 마켓 코드로 변환 (빗썸 API는 쉼표로 구분된 여러 마켓을 한 번에 조회 가능)
+        List<String> markets = tickers.stream()
+                .map(ticker -> "KRW-" + ticker.toUpperCase())
+                .toList();
+
+        log.info("Fetching prices for {} tickers in a single request", tickers.size());
+
+        try {
+            List<BithumbTickerDto> tickerDtos = bithumbClient.getTickers(markets);
+
+            if (tickerDtos != null) {
+                for (BithumbTickerDto dto : tickerDtos) {
+                    // "KRW-BTC" -> "BTC"
+                    String ticker = dto.getMarket().replace("KRW-", "");
+                    Double price = dto.getTradePrice() != null ? dto.getTradePrice().doubleValue() : null;
+                    if (price != null) {
+                        priceMap.put(ticker, price);
+                    }
+                }
+            }
+
+            log.info("Successfully fetched {} prices out of {} tickers", priceMap.size(), tickers.size());
+        } catch (Exception e) {
+            log.error("Failed to fetch prices: {}", e.getMessage());
+        }
+
+        return priceMap;
     }
 }

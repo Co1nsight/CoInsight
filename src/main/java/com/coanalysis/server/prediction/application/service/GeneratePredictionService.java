@@ -102,11 +102,20 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
     public List<CryptoPrediction> generateAllPredictions() {
         log.info("Generating predictions for all cryptos");
         List<Crypto> allCryptos = cryptoRepository.findAll();
-        List<CryptoPrediction> predictions = new ArrayList<>();
 
+        // 1. 모든 코인의 가격을 한 번에 조회 (rate limit 방지)
+        List<String> tickers = allCryptos.stream()
+                .map(Crypto::getTicker)
+                .toList();
+        Map<String, Double> priceMap = fetchCryptoPricePort.fetchAllPrices(tickers);
+        log.info("Fetched prices for {} cryptos", priceMap.size());
+
+        // 2. 각 코인에 대해 예측 생성 (이미 조회한 가격 사용)
+        List<CryptoPrediction> predictions = new ArrayList<>();
         for (Crypto crypto : allCryptos) {
             try {
-                CryptoPrediction prediction = generatePrediction(crypto.getTicker());
+                Double price = priceMap.get(crypto.getTicker());
+                CryptoPrediction prediction = generatePredictionWithPrice(crypto, price);
                 if (prediction != null) {
                     predictions.add(prediction);
                 }
@@ -117,5 +126,59 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
 
         log.info("Generated {} predictions for {} cryptos", predictions.size(), allCryptos.size());
         return predictions;
+    }
+
+    private CryptoPrediction generatePredictionWithPrice(Crypto crypto, Double currentPrice) {
+        String ticker = crypto.getTicker();
+
+        // 최근 24시간 뉴스 감성 분석 결과 조회
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime from = now.minusHours(24);
+        Map<String, Integer> sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
+
+        int positiveCount = sentimentCounts.getOrDefault("positive", 0);
+        int negativeCount = sentimentCounts.getOrDefault("negative", 0);
+        int neutralCount = sentimentCounts.getOrDefault("neutral", 0);
+        int totalNonNeutral = positiveCount + negativeCount;
+
+        // 긍정 비율 계산 (중립 제외)
+        double positiveRatio = totalNonNeutral > 0
+                ? (double) positiveCount / totalNonNeutral
+                : 0.5;
+
+        // 예측 라벨 결정
+        PredictionLabel predictionLabel;
+        if (positiveRatio > POSITIVE_THRESHOLD) {
+            predictionLabel = PredictionLabel.UP;
+        } else if (positiveRatio < NEGATIVE_THRESHOLD) {
+            predictionLabel = PredictionLabel.DOWN;
+        } else {
+            predictionLabel = PredictionLabel.NEUTRAL;
+        }
+
+        // 가격이 없으면 0으로 설정
+        if (currentPrice == null) {
+            log.warn("Price not available for ticker: {}", ticker);
+            currentPrice = 0.0;
+        }
+
+        // 예측 저장
+        CryptoPrediction prediction = CryptoPrediction.builder()
+                .crypto(crypto)
+                .predictionDate(LocalDate.now())
+                .predictionTime(now)
+                .positiveCount(positiveCount)
+                .negativeCount(negativeCount)
+                .neutralCount(neutralCount)
+                .positiveRatio(Math.round(positiveRatio * 100) / 100.0)
+                .predictionLabel(predictionLabel)
+                .priceAtPrediction(currentPrice)
+                .build();
+
+        CryptoPrediction savedPrediction = savePredictionPort.savePrediction(prediction);
+        log.debug("Prediction generated for {}: label={}, positiveRatio={}, newsCount={}",
+                ticker, predictionLabel, positiveRatio, positiveCount + negativeCount + neutralCount);
+
+        return savedPrediction;
     }
 }
