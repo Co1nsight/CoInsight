@@ -1,9 +1,11 @@
 package com.coanalysis.server.prediction.adapter.in.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +23,11 @@ public class PredictionHistoryResponse {
 	private Long predictionId;
 
 	@Schema(description = "예측 날짜", example = "2024-01-15")
+	@JsonFormat(pattern = "yyyy-MM-dd")
 	private LocalDate predictionDate;
 
 	@Schema(description = "예측 시각", example = "2024-01-15T09:00:00")
+	@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 	private LocalDateTime predictionTime;
 
 	@Schema(description = "AI 예측 결과", example = "UP")
@@ -41,8 +45,8 @@ public class PredictionHistoryResponse {
 	@Schema(description = "중립 뉴스 수", example = "5")
 	private Integer neutralCount;
 
-	@Schema(description = "예측 시점 가격", example = "65000000.0")
-	private Double priceAtPrediction;
+	@Schema(description = "예측 시점 가격", example = "65000000")
+	private String priceAtPrediction;
 
 	@Schema(description = "간격별 검증 결과 목록")
 	private List<VerificationResult> verifications;
@@ -66,7 +70,9 @@ public class PredictionHistoryResponse {
 		this.positiveCount = positiveCount;
 		this.negativeCount = negativeCount;
 		this.neutralCount = neutralCount;
-		this.priceAtPrediction = priceAtPrediction;
+		this.priceAtPrediction = priceAtPrediction != null
+			? BigDecimal.valueOf(priceAtPrediction).toPlainString()
+			: null;
 	}
 
 	@Getter
@@ -79,8 +85,8 @@ public class PredictionHistoryResponse {
 		@Schema(description = "검증 간격", example = "HOUR_1")
 		private String intervalType;
 
-		@Schema(description = "검증 시점 가격", example = "65500000.0")
-		private Double priceAtVerification;
+		@Schema(description = "검증 시점 가격", example = "65500000")
+		private String priceAtVerification;
 
 		@Schema(description = "가격 변동률 (%)", example = "0.77")
 		private Double priceChangePercent;
@@ -89,7 +95,19 @@ public class PredictionHistoryResponse {
 		private Boolean isSuccess;
 
 		@Schema(description = "검증 시각", example = "2024-01-15T10:00:00")
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 		private LocalDateTime verifiedAt;
+
+		public VerificationResult(String intervalType, Double priceAtVerification,
+								  Double priceChangePercent, Boolean isSuccess, LocalDateTime verifiedAt) {
+			this.intervalType = intervalType;
+			this.priceAtVerification = priceAtVerification != null
+				? BigDecimal.valueOf(priceAtVerification).toPlainString()
+				: null;
+			this.priceChangePercent = priceChangePercent;
+			this.isSuccess = isSuccess;
+			this.verifiedAt = verifiedAt;
+		}
 	}
 
 	public int getTotalNewsCount() {
