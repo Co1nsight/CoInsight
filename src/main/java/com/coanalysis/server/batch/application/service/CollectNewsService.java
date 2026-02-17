@@ -154,7 +154,7 @@ public class CollectNewsService implements CollectNewsUseCase {
                     result.getNeutralScore() * 100,
                     result.getNegativeScore() * 100);
         } else {
-            return String.format("Sentiment: %s (Confidence: %.1f%%) | Positive: %.1f%%, Neutral: %.1f%%, Negative: %.1f%%",
+            return String.format("감성분석 결과: %s (신뢰도: %.1f%%) | 긍정: %.1f%%, 중립: %.1f%%, 부정: %.1f%%",
                     result.getSentiment().getLabel(),
                     result.getScore() * 100,
                     result.getPositiveScore() * 100,
