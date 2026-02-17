@@ -55,13 +55,16 @@ public class FetchCryptoPriceAdapter implements FetchCryptoPricePort {
 
         try {
             List<BithumbTickerDto> tickerDtos = bithumbClient.getTickers(markets);
+            log.debug("Bithumb API returned {} ticker responses", tickerDtos != null ? tickerDtos.size() : 0);
 
             if (tickerDtos != null) {
                 for (BithumbTickerDto dto : tickerDtos) {
-                    // "KRW-BTC" -> "BTC"
-                    String ticker = dto.getMarket().replace("KRW-", "");
+                    String marketCode = dto.getMarket();
+                    // "KRW-BTC" -> "BTC" 또는 getSymbol() 메서드 사용
+                    String ticker = dto.getSymbol();
                     Double price = dto.getTradePrice() != null ? dto.getTradePrice().doubleValue() : null;
-                    if (price != null) {
+                    log.debug("Ticker response - market: {}, symbol: {}, price: {}", marketCode, ticker, price);
+                    if (ticker != null && price != null) {
                         priceMap.put(ticker, price);
                     }
                 }
@@ -69,7 +72,7 @@ public class FetchCryptoPriceAdapter implements FetchCryptoPricePort {
 
             log.info("Successfully fetched {} prices out of {} tickers", priceMap.size(), tickers.size());
         } catch (Exception e) {
-            log.error("Failed to fetch prices: {}", e.getMessage());
+            log.error("Failed to fetch prices: {}", e.getMessage(), e);
         }
 
         return priceMap;
