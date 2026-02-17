@@ -74,7 +74,7 @@ public class BithumbClient {
         String marketsParam = String.join(",", markets);
         String queryString = "markets=" + marketsParam;
         String url = baseUrl + "/v1/ticker?" + queryString;
-        log.info("Fetching tickers from Bithumb API: {}", url);
+        log.info("Fetching tickers from Bithumb API for {} markets", markets.size());
 
         try {
             HttpEntity<Void> entity = new HttpEntity<>(createAuthHeaders(queryString));
@@ -84,12 +84,16 @@ public class BithumbClient {
                     entity,
                     new ParameterizedTypeReference<>() {}
             );
-            return response.getBody();
+
+            List<BithumbTickerDto> result = response.getBody();
+            log.info("Bithumb API returned {} tickers", result != null ? result.size() : 0);
+
+            return result;
         } catch (HttpClientErrorException e) {
             handleHttpError(e);
             throw new CustomException(ErrorCode.BITHUMB_API_ERROR);
         } catch (RestClientException e) {
-            log.error("Failed to fetch tickers from Bithumb API", e);
+            log.error("Failed to fetch tickers from Bithumb API: {}", e.getMessage());
             throw new CustomException(ErrorCode.BITHUMB_API_ERROR, e.getMessage());
         }
     }
