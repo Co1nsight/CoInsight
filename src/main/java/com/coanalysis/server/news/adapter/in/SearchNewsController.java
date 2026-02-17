@@ -52,7 +52,7 @@ public class SearchNewsController implements SearchNewsControllerSwagger {
     @Override
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<SearchNewsResponse>>> searchByKeyword(
-            @RequestParam String keyword,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
         int safePage = Math.max(page, 0);

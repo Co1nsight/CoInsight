@@ -1,5 +1,7 @@
 package com.coanalysis.server.infrastructure.repository.dsl;
 
+import com.coanalysis.server.main.adapter.in.dto.MainNewsResponse;
+import com.coanalysis.server.main.adapter.in.dto.UnifiedSearchResponse;
 import com.coanalysis.server.news.adapter.in.dto.NewsDetailResponse;
 import com.coanalysis.server.news.adapter.in.dto.NewsWithAnalysisResponse;
 import com.coanalysis.server.news.adapter.in.dto.SearchNewsResponse;
@@ -27,5 +29,17 @@ public interface NewsDslRepository {
     NewsDetailResponse.AnalysisResult findAnalysisByNewsId(Long newsId);
 
     List<NewsDetailResponse.RelatedCrypto> findDetailRelatedCryptosByNewsId(Long newsId);
+
+    List<SearchNewsResponse> findNewsByTicker(String ticker, int page, int size);
+
+    long countNewsByTicker(String ticker);
+
+    List<MainNewsResponse> findMainNews(int page, int size);
+
+    long countMainNews();
+
+    List<MainNewsResponse.RelatedCrypto> findRelatedCryptosForMainNews(Long newsId);
+
+    List<UnifiedSearchResponse.NewsResult> searchNewsForUnified(String keyword, int limit);
 
 }

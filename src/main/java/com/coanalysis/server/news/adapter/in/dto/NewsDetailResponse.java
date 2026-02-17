@@ -34,6 +34,9 @@ public class NewsDetailResponse {
     @Schema(description = "원문 링크", example = "https://coindesk.com/news/123")
     private String originalLink;
 
+    @Schema(description = "뉴스 언어 (EN: 영문, KO: 한국어)", example = "KO")
+    private String language;
+
     @Schema(description = "AI 분석 결과")
     private AnalysisResult analysis;
 

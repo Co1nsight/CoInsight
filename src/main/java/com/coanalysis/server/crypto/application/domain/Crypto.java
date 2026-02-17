@@ -12,22 +12,18 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Crypto extends BaseEntity {
 
-
     @Id
     @Column(nullable = false, length = 10)
     private String ticker;   //BTC,ETH
 
-    @Column(nullable = false)
+    @Column(name = "NAME", length = 1000, nullable = false)
     private String name;
 
+    @Column(name = "LOGO_URL", length = 500)
     private String logoUrl;
 
     private double currentPrice; //현재가
 
     private double tradingVolume; //거래대금
-
-
-
-
 
 }
