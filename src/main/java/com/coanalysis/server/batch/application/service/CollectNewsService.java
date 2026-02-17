@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
@@ -24,6 +25,7 @@ import com.coanalysis.server.news.adapter.out.dto.SentimentAnalysisResult;
 import com.coanalysis.server.news.application.domain.News;
 import com.coanalysis.server.news.application.domain.NewsAnalysis;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class CollectNewsService implements CollectNewsUseCase {
     private final MapCryptoNewsPort mapCryptoNewsPort;
     private final SentimentAnalyzerFactory sentimentAnalyzerFactory;
     private final NewsAnalysisRepository newsAnalysisRepository;
+    private final EntityManager em;
 
     @Override
     @Transactional
@@ -87,24 +90,14 @@ public class CollectNewsService implements CollectNewsUseCase {
         // 7. 뉴스 저장
         List<News> savedNewsList = saveCollectedNewsPort.saveAll(uniqueNews);
         log.info("Saved {} new news articles", savedNewsList.size());
+        em.flush();
 
-        // 8. Virtual Thread로 감성 분석 및 코인 매핑 병렬 처리
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<CompletableFuture<Void>> futures = new ArrayList<>();
+        // 8. Virtual Thread로 감성 분석 및 코인 매핑 처리;
+        for (int i = 0; i < savedNewsList.size(); i++) {
+            final News savedNews = savedNewsList.get(i);
+            final CollectedNews collected = uniqueNews.get(i);
 
-            for (int i = 0; i < savedNewsList.size(); i++) {
-                final News savedNews = savedNewsList.get(i);
-                final CollectedNews collected = uniqueNews.get(i);
-
-                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    processNewsItem(savedNews, collected, knownTickers);
-                }, executor);
-
-                futures.add(future);
-            }
-
-            // 모든 작업 완료 대기
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            processNewsItem(savedNews, collected, knownTickers);
         }
 
         log.info("News collection batch completed. Processed {} news articles (EN: {}, KO: {})",
