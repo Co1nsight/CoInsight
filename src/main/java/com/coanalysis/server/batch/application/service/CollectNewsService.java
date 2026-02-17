@@ -42,6 +42,7 @@ public class CollectNewsService implements CollectNewsUseCase {
     private final SentimentAnalyzerFactory sentimentAnalyzerFactory;
     private final NewsAnalysisRepository newsAnalysisRepository;
     private final EntityManager em;
+    private final CryptoKeywordMatcher cryptoKeywordMatcher;
 
     @Override
     @Transactional
@@ -169,34 +170,17 @@ public class CollectNewsService implements CollectNewsUseCase {
 
     /**
      * 뉴스 텍스트에서 코인 키워드를 찾아 매칭된 ticker를 반환합니다.
+     * CryptoKeywordMatcher를 사용하여 다양한 패턴으로 매칭합니다.
      */
     private Set<String> extractMatchedTickers(News savedNews, CollectedNews collected,
                                                Set<String> knownTickers, Map<String, String> keywordToTicker) {
-        Set<String> matched = new HashSet<>();
-
-        // 1. categories에서 직접 매칭 (기존 로직 유지)
-        for (String category : collected.categories()) {
-            String upper = category.toUpperCase();
-            if (knownTickers.contains(upper)) {
-                matched.add(upper);
-            }
-        }
-
-        // 2. title/body에서 키워드 매칭 (한글명, 영문명, ticker 모두 검색)
-        String searchText = (savedNews.getTitle() + " " +
-                (savedNews.getContent() != null ? savedNews.getContent() : "")).toLowerCase();
-
-        for (Map.Entry<String, String> entry : keywordToTicker.entrySet()) {
-            String keyword = entry.getKey();
-            String ticker = entry.getValue();
-
-            // 키워드가 텍스트에 포함되어 있고, 해당 ticker가 유효한 경우
-            if (searchText.contains(keyword) && knownTickers.contains(ticker)) {
-                matched.add(ticker);
-            }
-        }
-
-        return matched;
+        return cryptoKeywordMatcher.extractTickers(
+                savedNews.getTitle(),
+                savedNews.getContent(),
+                collected.categories(),
+                knownTickers,
+                keywordToTicker
+        );
     }
 
     private String buildTextForAnalysis(String title, String content) {
