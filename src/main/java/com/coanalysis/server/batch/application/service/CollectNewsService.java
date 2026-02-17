@@ -1,6 +1,9 @@
 package com.coanalysis.server.batch.application.service;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -14,6 +17,7 @@ import com.coanalysis.server.batch.application.port.in.CollectNewsUseCase;
 import com.coanalysis.server.batch.application.port.out.FindDuplicateNewsPort;
 import com.coanalysis.server.batch.application.port.out.MapCryptoNewsPort;
 import com.coanalysis.server.batch.application.port.out.SaveCollectedNewsPort;
+import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.infrastructure.repository.NewsAnalysisRepository;
 import com.coanalysis.server.news.adapter.out.SentimentAnalyzerFactory;
 import com.coanalysis.server.news.adapter.out.dto.SentimentAnalysisResult;
@@ -79,20 +83,24 @@ public class CollectNewsService implements CollectNewsUseCase {
             return 0;
         }
 
-        // 6. 알려진 코인 티커 목록 조회
-        Set<String> knownTickers = mapCryptoNewsPort.getAllKnownTickers();
+        // 6. 모든 코인 정보 조회 (ticker, 한글명, 영문명)
+        List<Crypto> allCryptos = mapCryptoNewsPort.getAllCryptos();
+        Map<String, String> keywordToTicker = buildKeywordToTickerMap(allCryptos);
+        Set<String> knownTickers = allCryptos.stream()
+                .map(Crypto::getTicker)
+                .collect(Collectors.toSet());
 
         // 7. 뉴스 저장
         List<News> savedNewsList = saveCollectedNewsPort.saveAll(uniqueNews);
         log.info("Saved {} new news articles", savedNewsList.size());
         em.flush();
 
-        // 8. Virtual Thread로 감성 분석 및 코인 매핑 처리;
+        // 8. 감성 분석 및 코인 매핑 처리
         for (int i = 0; i < savedNewsList.size(); i++) {
             final News savedNews = savedNewsList.get(i);
             final CollectedNews collected = uniqueNews.get(i);
 
-            processNewsItem(savedNews, collected, knownTickers);
+            processNewsItem(savedNews, collected, knownTickers, keywordToTicker);
         }
 
         log.info("News collection batch completed. Processed {} news articles (EN: {}, KO: {})",
@@ -103,7 +111,8 @@ public class CollectNewsService implements CollectNewsUseCase {
         return savedNewsList.size();
     }
 
-    private void processNewsItem(News savedNews, CollectedNews collected, Set<String> knownTickers) {
+    private void processNewsItem(News savedNews, CollectedNews collected, Set<String> knownTickers,
+                                  Map<String, String> keywordToTicker) {
         try {
             // 8-1. 감성 분석 수행 (언어에 맞는 모델 사용)
             String textToAnalyze = buildTextForAnalysis(savedNews.getTitle(), savedNews.getContent());
@@ -121,8 +130,8 @@ public class CollectNewsService implements CollectNewsUseCase {
             log.debug("News ID {} ({}) sentiment analysis completed: {}",
                     savedNews.getId(), savedNews.getLanguage(), result.getSentiment());
 
-            // 8-3. 코인 매핑 추출 및 저장
-            Set<String> matchedTickers = collected.extractCoinTickers(knownTickers);
+            // 8-3. 코인 매핑 추출 및 저장 (ticker, 한글명, 영문명으로 매칭)
+            Set<String> matchedTickers = extractMatchedTickers(savedNews, collected, knownTickers, keywordToTicker);
             if (!matchedTickers.isEmpty()) {
                 mapCryptoNewsPort.mapNewsToCoins(savedNews, matchedTickers);
                 log.debug("News ID {} mapped to coins: {}", savedNews.getId(), matchedTickers);
@@ -131,7 +140,63 @@ public class CollectNewsService implements CollectNewsUseCase {
         } catch (Exception e) {
             log.warn("Failed to process news ID {}: {}", savedNews.getId(), e.getMessage());
         }
+    }
 
+    /**
+     * 코인 이름(한글명, 영문명, ticker)을 키워드로 매핑하는 Map을 생성합니다.
+     * 키는 소문자로 변환되며, 값은 ticker입니다.
+     */
+    private Map<String, String> buildKeywordToTickerMap(List<Crypto> cryptos) {
+        Map<String, String> map = new HashMap<>();
+        for (Crypto crypto : cryptos) {
+            String ticker = crypto.getTicker();
+
+            // ticker 자체 (대소문자 무시)
+            map.put(ticker.toLowerCase(), ticker);
+
+            // 한글명
+            if (crypto.getName() != null && !crypto.getName().isBlank()) {
+                map.put(crypto.getName().toLowerCase(), ticker);
+            }
+
+            // 영문명
+            if (crypto.getEnglishName() != null && !crypto.getEnglishName().isBlank()) {
+                map.put(crypto.getEnglishName().toLowerCase(), ticker);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 뉴스 텍스트에서 코인 키워드를 찾아 매칭된 ticker를 반환합니다.
+     */
+    private Set<String> extractMatchedTickers(News savedNews, CollectedNews collected,
+                                               Set<String> knownTickers, Map<String, String> keywordToTicker) {
+        Set<String> matched = new HashSet<>();
+
+        // 1. categories에서 직접 매칭 (기존 로직 유지)
+        for (String category : collected.categories()) {
+            String upper = category.toUpperCase();
+            if (knownTickers.contains(upper)) {
+                matched.add(upper);
+            }
+        }
+
+        // 2. title/body에서 키워드 매칭 (한글명, 영문명, ticker 모두 검색)
+        String searchText = (savedNews.getTitle() + " " +
+                (savedNews.getContent() != null ? savedNews.getContent() : "")).toLowerCase();
+
+        for (Map.Entry<String, String> entry : keywordToTicker.entrySet()) {
+            String keyword = entry.getKey();
+            String ticker = entry.getValue();
+
+            // 키워드가 텍스트에 포함되어 있고, 해당 ticker가 유효한 경우
+            if (searchText.contains(keyword) && knownTickers.contains(ticker)) {
+                matched.add(ticker);
+            }
+        }
+
+        return matched;
     }
 
     private String buildTextForAnalysis(String title, String content) {

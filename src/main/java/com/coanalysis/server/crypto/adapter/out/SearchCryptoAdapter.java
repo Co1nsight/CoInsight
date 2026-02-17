@@ -35,4 +35,9 @@ public class SearchCryptoAdapter implements SearchCryptoPort {
     public List<Crypto> findAllByTickers(Set<String> coinTickers) {
         return cryptoRepository.findAllByTickers(coinTickers);
     }
+
+    @Override
+    public List<Crypto> findAllCryptos() {
+        return cryptoRepository.findAllCryptos();
+    }
 }

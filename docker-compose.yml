@@ -9,12 +9,15 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_H2_CONSOLE_ENABLED=true
       - SPRING_H2_CONSOLE_PATH=/h2-console
-      - SPRING_DATASOURCE_URL=jdbc:h2:mem:testdb
+      - SPRING_H2_CONSOLE_SETTINGS_WEB_ALLOW_OTHERS=true
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/data/coanalysis;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_JPA_SHOW_SQL=true
       - HUGGINGFACE_API_TOKEN=${HUGGINGFACE_API_TOKEN}
+    volumes:
+      - h2-data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
@@ -50,3 +53,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  h2-data:
+    driver: local

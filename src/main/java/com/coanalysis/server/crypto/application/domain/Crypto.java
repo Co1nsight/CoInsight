@@ -17,7 +17,10 @@ public class Crypto extends BaseEntity {
     private String ticker;   //BTC,ETH
 
     @Column(name = "NAME", length = 1000, nullable = false)
-    private String name;
+    private String name;  // 한글명 (비트코인)
+
+    @Column(name = "ENGLISH_NAME", length = 1000)
+    private String englishName;  // 영문명 (Bitcoin)
 
     @Column(name = "LOGO_URL", length = 500)
     private String logoUrl;
