@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -42,6 +43,19 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
 
         log.info("Found {} unverified predictions for interval {}", unverifiedPredictions.size(), intervalType);
 
+        if (unverifiedPredictions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 1. 모든 티커를 수집하여 한 번에 가격 조회 (rate limit 방지)
+        List<String> tickers = unverifiedPredictions.stream()
+                .map(p -> p.getCrypto().getTicker())
+                .distinct()
+                .toList();
+        Map<String, Double> priceMap = fetchCryptoPricePort.fetchAllPrices(tickers);
+        log.info("Fetched prices for {} tickers in a single request", priceMap.size());
+
+        // 2. 조회한 가격을 사용하여 각 예측 검증
         List<PredictionVerification> verifications = new ArrayList<>();
 
         for (CryptoPrediction prediction : unverifiedPredictions) {
@@ -51,7 +65,10 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
                     continue;
                 }
 
-                PredictionVerification verification = verifyPrediction(prediction, intervalType);
+                String ticker = prediction.getCrypto().getTicker();
+                Double currentPrice = priceMap.get(ticker);
+
+                PredictionVerification verification = verifyPredictionWithPrice(prediction, intervalType, currentPrice);
                 if (verification != null) {
                     verifications.add(verification);
                 }
@@ -77,13 +94,11 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
         }
     }
 
-    private PredictionVerification verifyPrediction(CryptoPrediction prediction, IntervalType intervalType) {
+    private PredictionVerification verifyPredictionWithPrice(CryptoPrediction prediction, IntervalType intervalType, Double currentPrice) {
         String ticker = prediction.getCrypto().getTicker();
 
-        // 현재 가격 조회
-        Double currentPrice = fetchCryptoPricePort.fetchCurrentPrice(ticker);
         if (currentPrice == null || currentPrice == 0) {
-            log.warn("Failed to fetch current price for {}", ticker);
+            log.warn("Price not available for {}", ticker);
             return null;
         }
 
@@ -110,7 +125,7 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
 
         PredictionVerification savedVerification = savePredictionPort.saveVerification(verification);
 
-        log.info("Verified prediction {} for {} with interval {}: change={}%, success={}",
+        log.debug("Verified prediction {} for {} with interval {}: change={}%, success={}",
                 prediction.getId(), ticker, intervalType, priceChangePercent, isSuccess);
 
         return savedVerification;
