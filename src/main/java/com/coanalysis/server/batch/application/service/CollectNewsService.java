@@ -1,16 +1,11 @@
 package com.coanalysis.server.batch.application.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
