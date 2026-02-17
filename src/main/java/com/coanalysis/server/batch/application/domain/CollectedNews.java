@@ -1,14 +1,11 @@
 package com.coanalysis.server.batch.application.domain;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.coanalysis.server.infrastructure.util.TimeZoneUtil;
 import com.coanalysis.server.news.application.enums.Language;
 
 public record CollectedNews(
@@ -31,7 +28,7 @@ public record CollectedNews(
             body,
             url,
             source,
-            LocalDateTime.ofInstant(Instant.ofEpochSecond(publishedOn), ZoneId.systemDefault()),
+            TimeZoneUtil.fromEpochSecondToUtc(publishedOn),
             parseDelimitedString(categories),
             parseDelimitedString(tags),
             language

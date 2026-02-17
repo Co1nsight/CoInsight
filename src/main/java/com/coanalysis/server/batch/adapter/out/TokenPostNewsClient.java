@@ -11,9 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.coanalysis.server.infrastructure.util.TimeZoneUtil;
+
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -72,9 +73,10 @@ public class TokenPostNewsClient implements FetchCryptoNewsPort {
         String link = entry.getLink() != null ? entry.getLink() : "";
         String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
 
+        // RSS의 publishedDate는 KST로 제공되므로 UTC로 변환하여 저장
         LocalDateTime publishedAt = entry.getPublishedDate() != null
-                ? entry.getPublishedDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
-                : LocalDateTime.now();
+                ? TimeZoneUtil.fromDateToUtc(entry.getPublishedDate())
+                : TimeZoneUtil.nowUtc();
 
         return CollectedNews.fromRssItem(
                 id,

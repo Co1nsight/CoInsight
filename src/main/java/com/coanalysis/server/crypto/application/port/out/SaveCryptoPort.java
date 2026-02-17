@@ -16,4 +16,14 @@ public interface SaveCryptoPort {
      * DB에 존재하는 모든 ticker를 조회합니다.
      */
     Set<String> findAllTickers();
+
+    /**
+     * 로고 URL이 없는 코인 목록을 조회합니다.
+     */
+    List<Crypto> findAllWithoutLogoUrl();
+
+    /**
+     * 특정 코인의 로고 URL을 업데이트합니다.
+     */
+    void updateLogoUrl(String ticker, String logoUrl);
 }
