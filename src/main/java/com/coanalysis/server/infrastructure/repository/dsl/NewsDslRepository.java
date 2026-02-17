@@ -28,4 +28,8 @@ public interface NewsDslRepository {
 
     List<NewsDetailResponse.RelatedCrypto> findDetailRelatedCryptosByNewsId(Long newsId);
 
+    List<SearchNewsResponse> findNewsByTicker(String ticker, int page, int size);
+
+    long countNewsByTicker(String ticker);
+
 }

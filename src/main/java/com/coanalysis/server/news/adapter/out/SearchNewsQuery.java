@@ -62,6 +62,7 @@ public class SearchNewsQuery {
                 .publisher(newsDetail.getPublisher())
                 .publishedAt(newsDetail.getPublishedAt())
                 .originalLink(newsDetail.getOriginalLink())
+                .language(newsDetail.getLanguage())
                 .analysis(analysis)
                 .relatedCryptos(relatedCryptos)
                 .build();

@@ -163,7 +163,8 @@ public class NewsDslRepositoryImpl implements NewsDslRepository {
                         news.content,
                         news.publisher,
                         news.publishedAt,
-                        news.originalLink
+                        news.originalLink,
+                        news.language.stringValue().as("language")
                 ))
                 .from(news)
                 .where(news.id.eq(newsId))
@@ -198,6 +199,44 @@ public class NewsDslRepositoryImpl implements NewsDslRepository {
                 .join(crypto).on(cryptoNews.crypto.ticker.eq(crypto.ticker))
                 .where(cryptoNews.news.id.eq(newsId))
                 .fetch();
+    }
+
+    @Override
+    public List<SearchNewsResponse> findNewsByTicker(String ticker, int page, int size) {
+        QNews news = new QNews("news");
+        QNewsAnalysis analysis = new QNewsAnalysis("analysis");
+        QCryptoNews cryptoNews = new QCryptoNews("cryptoNews");
+
+        return queryFactory.select(Projections.constructor(SearchNewsResponse.class,
+                        news.id,
+                        news.title,
+                        news.publisher,
+                        news.publishedAt,
+                        analysis.sentimentLabel,
+                        analysis.sentimentScore
+                ))
+                .from(news)
+                .join(cryptoNews).on(cryptoNews.news.id.eq(news.id))
+                .leftJoin(analysis).on(analysis.news.id.eq(news.id))
+                .where(cryptoNews.crypto.ticker.eq(ticker.toUpperCase()))
+                .orderBy(news.publishedAt.desc())
+                .offset((long) page * size)
+                .limit(size)
+                .fetch();
+    }
+
+    @Override
+    public long countNewsByTicker(String ticker) {
+        QNews news = new QNews("news");
+        QCryptoNews cryptoNews = new QCryptoNews("cryptoNews");
+
+        Long count = queryFactory.select(news.count())
+                .from(news)
+                .join(cryptoNews).on(cryptoNews.news.id.eq(news.id))
+                .where(cryptoNews.crypto.ticker.eq(ticker.toUpperCase()))
+                .fetchOne();
+
+        return count != null ? count : 0;
     }
 
 }
