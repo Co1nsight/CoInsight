@@ -136,6 +136,7 @@ public class CollectNewsService implements CollectNewsUseCase {
         } catch (Exception e) {
             log.warn("Failed to process news ID {}: {}", savedNews.getId(), e.getMessage());
         }
+
     }
 
     private String buildTextForAnalysis(String title, String content) {
