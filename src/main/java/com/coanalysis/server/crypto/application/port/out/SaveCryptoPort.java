@@ -26,4 +26,9 @@ public interface SaveCryptoPort {
      * 특정 코인의 로고 URL을 업데이트합니다.
      */
     void updateLogoUrl(String ticker, String logoUrl);
+
+    /**
+     * 모든 코인을 조회합니다.
+     */
+    List<Crypto> findAll();
 }

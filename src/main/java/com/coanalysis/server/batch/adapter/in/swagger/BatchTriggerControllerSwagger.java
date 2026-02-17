@@ -218,4 +218,56 @@ public interface BatchTriggerControllerSwagger {
             )
     })
     ResponseEntity<ApiResponse<String>> triggerPredictionVerification();
+
+    @Operation(
+            summary = "[BE 테스트 전용] 코인 로고 URL 업데이트",
+            description = """
+                    **BE 테스트 전용 API입니다. 운영 환경에서 사용하지 마세요.**
+
+                    모든 코인의 로고 URL을 새 URL 패턴으로 업데이트합니다.
+                    - 기존에 저장된 로고 URL이 404인 경우 사용하세요.
+                    - 업데이트된 코인 개수를 반환합니다.
+                    """
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "업데이트 완료",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(
+                                    name = "실행 성공",
+                                    value = """
+                                            {
+                                                "success": true,
+                                                "data": "Logo URL update completed. Updated: 150 cryptos",
+                                                "error": null
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500",
+                    description = "업데이트 실패",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "실행 실패",
+                                    value = """
+                                            {
+                                                "success": false,
+                                                "data": null,
+                                                "error": {
+                                                    "code": "INTERNAL_SERVER_ERROR",
+                                                    "message": "로고 URL 업데이트 중 오류가 발생했습니다."
+                                                }
+                                            }
+                                            """
+                            )
+                    )
+            )
+    })
+    ResponseEntity<ApiResponse<String>> triggerLogoUrlUpdate();
 }

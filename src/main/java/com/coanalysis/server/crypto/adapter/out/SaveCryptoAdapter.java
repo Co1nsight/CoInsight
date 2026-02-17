@@ -34,4 +34,9 @@ public class SaveCryptoAdapter implements SaveCryptoPort {
     public void updateLogoUrl(String ticker, String logoUrl) {
         cryptoRepository.updateLogoUrl(ticker, logoUrl);
     }
+
+    @Override
+    public List<Crypto> findAll() {
+        return cryptoRepository.findAll();
+    }
 }

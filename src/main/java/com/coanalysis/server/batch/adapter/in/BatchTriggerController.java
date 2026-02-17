@@ -88,4 +88,20 @@ public class BatchTriggerController implements BatchTriggerControllerSwagger {
 
         return ResponseEntity.ok(ApiResponse.success("Prediction verification completed"));
     }
+
+    @Override
+    @PostMapping("/trigger/logo-url-update")
+    public ResponseEntity<ApiResponse<String>> triggerLogoUrlUpdate() {
+        log.info("[Manual Trigger] Logo URL update started");
+        long startTime = System.currentTimeMillis();
+
+        int updatedCount = syncCryptoUsecase.updateAllLogoUrls();
+        long duration = System.currentTimeMillis() - startTime;
+
+        log.info("[Manual Trigger] Logo URL update completed. Updated: {}, Duration: {}ms",
+                updatedCount, duration);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                String.format("Logo URL update completed. Updated: %d cryptos", updatedCount)));
+    }
 }
