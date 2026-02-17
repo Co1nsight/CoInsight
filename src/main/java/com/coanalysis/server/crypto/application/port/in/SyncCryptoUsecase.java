@@ -9,4 +9,11 @@ public interface SyncCryptoUsecase {
      * @return 새로 추가된 코인 수
      */
     int syncCryptos();
+
+    /**
+     * 모든 코인의 로고 URL을 새 URL 패턴으로 업데이트합니다.
+     *
+     * @return 업데이트된 코인 수
+     */
+    int updateAllLogoUrls();
 }

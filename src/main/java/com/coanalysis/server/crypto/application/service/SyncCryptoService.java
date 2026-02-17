@@ -84,6 +84,27 @@ public class SyncCryptoService implements SyncCryptoUsecase {
         log.info("로고 URL 업데이트 완료: {} 개", cryptosWithoutLogo.size());
     }
 
+    /**
+     * 모든 코인의 로고 URL을 새 URL 패턴으로 업데이트합니다.
+     */
+    @Override
+    @Transactional
+    public int updateAllLogoUrls() {
+        List<Crypto> allCryptos = saveCryptoPort.findAll();
+        log.info("모든 코인 로고 URL 업데이트 시작: {} 개", allCryptos.size());
+
+        int updatedCount = 0;
+        for (Crypto crypto : allCryptos) {
+            String newLogoUrl = generateLogoUrl(crypto.getTicker());
+            saveCryptoPort.updateLogoUrl(crypto.getTicker(), newLogoUrl);
+            updatedCount++;
+            log.debug("로고 URL 업데이트: {} -> {}", crypto.getTicker(), newLogoUrl);
+        }
+
+        log.info("모든 코인 로고 URL 업데이트 완료: {} 개", updatedCount);
+        return updatedCount;
+    }
+
     private Crypto toCrypto(BithumbMarketDto market) {
         return Crypto.builder()
                 .ticker(market.getSymbol())
@@ -96,13 +117,14 @@ public class SyncCryptoService implements SyncCryptoUsecase {
     }
 
     /**
-     * CoinCap Assets 기반 로고 URL 생성
-     * https://assets.coincap.io/assets/icons/{symbol}@2x.png
+     * cryptocurrency-icons GitHub 저장소 기반 로고 URL 생성
+     * JSDelivr CDN을 통해 제공되어 안정적임
+     * https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/{symbol}.png
      */
     private String generateLogoUrl(String symbol) {
         if (symbol == null || symbol.isBlank()) {
             return null;
         }
-        return String.format("https://assets.coincap.io/assets/icons/%s@2x.png", symbol.toLowerCase());
+        return String.format("https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/%s.png", symbol.toLowerCase());
     }
 }
