@@ -4,6 +4,7 @@ import com.coanalysis.server.batch.adapter.out.dto.CryptoCompareNewsItem;
 import com.coanalysis.server.batch.adapter.out.dto.CryptoCompareNewsResponse;
 import com.coanalysis.server.batch.application.domain.CollectedNews;
 import com.coanalysis.server.batch.application.port.out.FetchCryptoNewsPort;
+import com.coanalysis.server.news.application.enums.Language;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -78,7 +79,8 @@ public class CryptoCompareNewsClient implements FetchCryptoNewsPort {
                 item.getSource(),
                 item.getPublishedOn(),
                 item.getCategories(),
-                item.getTags()
+                item.getTags(),
+                Language.EN
         );
     }
 }

@@ -1,6 +1,7 @@
 package com.coanalysis.server.news.application.domain;
 
 import com.coanalysis.server.infrastructure.entity.BaseEntity;
+import com.coanalysis.server.news.application.enums.Language;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,5 +30,10 @@ public class News extends BaseEntity {
     private LocalDateTime publishedAt;
 
     private String content;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 2)
+    @Builder.Default
+    private Language language = Language.EN;
 
 }

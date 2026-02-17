@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.coanalysis.server.news.application.enums.Language;
+
 public record CollectedNews(
     String externalId,
     String title,
@@ -17,7 +19,8 @@ public record CollectedNews(
     String source,
     LocalDateTime publishedAt,
     Set<String> categories,
-    Set<String> tags
+    Set<String> tags,
+    Language language
 ) {
     private static final Map<String, String> KEYWORD_TO_TICKER = Map.ofEntries(
         Map.entry("bitcoin", "BTC"),
@@ -61,7 +64,7 @@ public record CollectedNews(
     }
 
     public static CollectedNews fromApiResponse(String id, String title, String url, String body,
-            String source, Long publishedOn, String categories, String tags) {
+            String source, Long publishedOn, String categories, String tags, Language language) {
         return new CollectedNews(
             id,
             title,
@@ -70,7 +73,23 @@ public record CollectedNews(
             source,
             LocalDateTime.ofInstant(Instant.ofEpochSecond(publishedOn), ZoneId.systemDefault()),
             parseDelimitedString(categories),
-            parseDelimitedString(tags)
+            parseDelimitedString(tags),
+            language
+        );
+    }
+
+    public static CollectedNews fromRssItem(String id, String title, String url, String body,
+            String source, LocalDateTime publishedAt, Language language) {
+        return new CollectedNews(
+            id,
+            title,
+            body,
+            url,
+            source,
+            publishedAt,
+            Set.of(),
+            Set.of(),
+            language
         );
     }
 

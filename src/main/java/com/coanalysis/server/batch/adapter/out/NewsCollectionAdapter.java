@@ -59,6 +59,7 @@ public class NewsCollectionAdapter implements SaveCollectedNewsPort, FindDuplica
                 .publisher(collected.source())
                 .publishedAt(collected.publishedAt())
                 .content(truncateContent(collected.body()))
+                .language(collected.language())
                 .build();
     }
 
