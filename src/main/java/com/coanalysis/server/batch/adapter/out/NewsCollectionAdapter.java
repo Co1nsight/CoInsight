@@ -58,16 +58,8 @@ public class NewsCollectionAdapter implements SaveCollectedNewsPort, FindDuplica
                 .originalLink(collected.originalLink())
                 .publisher(collected.source())
                 .publishedAt(collected.publishedAt())
-                .content(truncateContent(collected.body()))
+                .content(collected.body())
                 .language(collected.language())
                 .build();
-    }
-
-    private String truncateContent(String content) {
-        if (content == null) {
-            return null;
-        }
-        // HuggingFace 모델 제한에 맞춰 512자로 truncate
-        return content.length() > 512 ? content.substring(0, 512) : content;
     }
 }

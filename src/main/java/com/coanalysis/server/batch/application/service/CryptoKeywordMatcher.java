@@ -247,6 +247,56 @@ public class CryptoKeywordMatcher {
             "OP", "INJ", "FET", "WLD"
     );
 
+    // 일반 영어 단어와 겹치는 티커 - 매칭에서 제외
+    // 관사, 전치사, 접속사 등 문장에서 자주 단독으로 사용되는 단어들
+    private static final Set<String> EXCLUDED_TICKERS = Set.of(
+            "A",        // 부정관사
+            "THE",      // 정관사
+            "AN",       // 부정관사
+            "AND",      // 접속사
+            "OR",       // 접속사
+            "FOR",      // 전치사
+            "TO",       // 전치사
+            "OF",       // 전치사
+            "IN",       // 전치사
+            "ON",       // 전치사
+            "AT",       // 전치사
+            "BY",       // 전치사
+            "AS",       // 접속사/전치사
+            "IS",       // be동사
+            "IT",       // 대명사
+            "BE",       // be동사
+            "WE",       // 대명사
+            "GO",       // 동사
+            "DO",       // 동사
+            "NO",       // 부사
+            "SO",       // 부사
+            "UP",       // 부사/전치사
+            "IF",       // 접속사
+            "ME",       // 대명사
+            "MY",       // 대명사
+            "HE",       // 대명사
+            "US",       // 대명사
+            "ANY",      // 형용사
+            "ALL",      // 형용사
+            "NEW",      // 형용사
+            "ONE",      // 숫자
+            "TWO",      // 숫자
+            "GET",      // 동사
+            "GOT",      // 동사
+            "CAN",      // 조동사
+            "MAY",      // 조동사
+            "BIG",      // 형용사
+            "PRO",      // 명사/형용사
+            "KEY",      // 명사
+            "TOP",      // 명사/형용사
+            "WIN",      // 동사
+            "HOT",      // 형용사
+            "NOW",      // 부사
+            "OLD",      // 형용사
+            "OWN"       // 형용사/동사
+    );
+
     /**
      * 뉴스에서 코인 티커를 추출합니다.
      */
@@ -254,30 +304,37 @@ public class CryptoKeywordMatcher {
                                        Set<String> knownTickers, Map<String, String> keywordToTicker) {
         Set<String> matched = new HashSet<>();
 
+        // 일반 단어와 겹치는 티커는 매칭 대상에서 제외
+        Set<String> filteredTickers = new HashSet<>(knownTickers);
+        filteredTickers.removeAll(EXCLUDED_TICKERS);
+
         // 텍스트 준비
         String fullText = prepareText(title, content);
         String lowerText = fullText.toLowerCase();
 
         // 1. 카테고리에서 직접 매칭
-        matchFromCategories(categories, knownTickers, matched);
+        matchFromCategories(categories, filteredTickers, matched);
 
         // 2. 해시태그/캐시태그 패턴 매칭 ($BTC, #Bitcoin 등)
-        matchHashtagPatterns(fullText, knownTickers, matched);
+        matchHashtagPatterns(fullText, filteredTickers, matched);
 
         // 3. 별명/약칭 매칭 (한글/영문 별명)
-        matchAliases(lowerText, knownTickers, matched);
+        matchAliases(lowerText, filteredTickers, matched);
 
         // 4. 영문명 정확 매칭 (단어 경계 검사)
-        matchEnglishNames(fullText, keywordToTicker, knownTickers, matched);
+        matchEnglishNames(fullText, keywordToTicker, filteredTickers, matched);
 
         // 5. 한글명 매칭
-        matchKoreanNames(lowerText, keywordToTicker, knownTickers, matched);
+        matchKoreanNames(lowerText, keywordToTicker, filteredTickers, matched);
 
         // 6. 티커 직접 매칭 (단어 경계 검사)
-        matchTickers(fullText, knownTickers, matched);
+        matchTickers(fullText, filteredTickers, matched);
 
         // 7. 복합 패턴 매칭 (Bitcoin ETF, Ethereum 2.0 등)
-        matchCompoundPatterns(lowerText, matched, knownTickers);
+        matchCompoundPatterns(lowerText, matched, filteredTickers);
+
+        // 최종 결과에서도 제외 티커 필터링
+        matched.removeAll(EXCLUDED_TICKERS);
 
         log.debug("Matched tickers from text: {}", matched);
         return matched;

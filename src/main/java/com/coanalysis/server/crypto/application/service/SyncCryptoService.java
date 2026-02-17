@@ -27,6 +27,9 @@ public class SyncCryptoService implements SyncCryptoUsecase {
     public int syncCryptos() {
         log.info("코인 목록 동기화 시작");
 
+        // 0. 기존 코인 중 로고 URL이 없는 코인들 업데이트
+        updateMissingLogoUrls();
+
         // 1. Bithumb API에서 전체 마켓 정보 조회
         List<BithumbMarketDto> markets = bithumbClient.getMarkets();
         log.info("Bithumb API에서 {} 개의 마켓 정보 조회됨", markets.size());
@@ -63,14 +66,43 @@ public class SyncCryptoService implements SyncCryptoUsecase {
         return savedCryptos.size();
     }
 
+    /**
+     * 로고 URL이 없는 기존 코인들의 로고 URL을 업데이트합니다.
+     */
+    private void updateMissingLogoUrls() {
+        List<Crypto> cryptosWithoutLogo = saveCryptoPort.findAllWithoutLogoUrl();
+        if (cryptosWithoutLogo.isEmpty()) {
+            return;
+        }
+
+        log.info("로고 URL 업데이트가 필요한 코인 수: {}", cryptosWithoutLogo.size());
+        for (Crypto crypto : cryptosWithoutLogo) {
+            String logoUrl = generateLogoUrl(crypto.getTicker());
+            saveCryptoPort.updateLogoUrl(crypto.getTicker(), logoUrl);
+            log.debug("로고 URL 업데이트: {} -> {}", crypto.getTicker(), logoUrl);
+        }
+        log.info("로고 URL 업데이트 완료: {} 개", cryptosWithoutLogo.size());
+    }
+
     private Crypto toCrypto(BithumbMarketDto market) {
         return Crypto.builder()
                 .ticker(market.getSymbol())
                 .name(market.getKoreanName())
                 .englishName(market.getEnglishName())
-                .logoUrl(null)  // 로고 URL은 별도 API에서 가져오거나 null로 유지
+                .logoUrl(generateLogoUrl(market.getSymbol()))
                 .currentPrice(0)
                 .tradingVolume(0)
                 .build();
+    }
+
+    /**
+     * CoinCap Assets 기반 로고 URL 생성
+     * https://assets.coincap.io/assets/icons/{symbol}@2x.png
+     */
+    private String generateLogoUrl(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return null;
+        }
+        return String.format("https://assets.coincap.io/assets/icons/%s@2x.png", symbol.toLowerCase());
     }
 }

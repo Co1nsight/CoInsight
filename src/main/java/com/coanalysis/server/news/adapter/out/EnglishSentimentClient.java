@@ -21,7 +21,9 @@ import java.util.List;
 @Component
 public class EnglishSentimentClient {
 
-    private static final int MAX_INPUT_LENGTH = 512;
+    // BERT 모델은 512 토큰 제한 (영어 약 2000자)
+    // 안전하게 2000자로 설정 - 초과 시 truncate는 API 호출 시에만 적용
+    private static final int MAX_INPUT_LENGTH = 2000;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;

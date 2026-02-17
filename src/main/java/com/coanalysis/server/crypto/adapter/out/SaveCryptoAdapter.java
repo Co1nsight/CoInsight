@@ -24,4 +24,14 @@ public class SaveCryptoAdapter implements SaveCryptoPort {
     public Set<String> findAllTickers() {
         return cryptoRepository.findAllTickers();
     }
+
+    @Override
+    public List<Crypto> findAllWithoutLogoUrl() {
+        return cryptoRepository.findAllWithoutLogoUrl();
+    }
+
+    @Override
+    public void updateLogoUrl(String ticker, String logoUrl) {
+        cryptoRepository.updateLogoUrl(ticker, logoUrl);
+    }
 }
