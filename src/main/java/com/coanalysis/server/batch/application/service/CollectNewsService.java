@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
+import com.coanalysis.server.batch.adapter.out.BlockMediaNewsClient;
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
 import com.coanalysis.server.batch.application.domain.CollectedNews;
@@ -35,7 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 public class CollectNewsService implements CollectNewsUseCase {
 
     private final CryptoCompareNewsClient englishNewsClient;
-    private final TokenPostNewsClient koreanNewsClient;
+    private final TokenPostNewsClient tokenPostNewsClient;
+    private final BlockMediaNewsClient blockMediaNewsClient;
     private final FindDuplicateNewsPort findDuplicateNewsPort;
     private final SaveCollectedNewsPort saveCollectedNewsPort;
     private final MapCryptoNewsPort mapCryptoNewsPort;
@@ -53,20 +55,26 @@ public class CollectNewsService implements CollectNewsUseCase {
         List<CollectedNews> englishNews = englishNewsClient.fetchLatestNews();
         log.info("Collected {} English news from CryptoCompare", englishNews.size());
 
-        // 2. 한국어 뉴스 수집
-        List<CollectedNews> koreanNews = koreanNewsClient.fetchLatestNews();
-        log.info("Collected {} Korean news from TokenPost", koreanNews.size());
+        // 2. 한국어 뉴스 수집 (TokenPost)
+        List<CollectedNews> tokenPostNews = tokenPostNewsClient.fetchLatestNews();
+        log.info("Collected {} Korean news from TokenPost", tokenPostNews.size());
 
-        // 3. 전체 뉴스 합치기
-        List<CollectedNews> allNews = Stream.concat(englishNews.stream(), koreanNews.stream())
-                .collect(Collectors.toList());
+        // 3. 한국어 뉴스 수집 (BlockMedia)
+        List<CollectedNews> blockMediaNews = blockMediaNewsClient.fetchLatestNews();
+        log.info("Collected {} Korean news from BlockMedia", blockMediaNews.size());
+
+        // 4. 전체 뉴스 합치기
+        List<CollectedNews> allNews = Stream.concat(
+                Stream.concat(englishNews.stream(), tokenPostNews.stream()),
+                blockMediaNews.stream()
+        ).collect(Collectors.toList());
 
         if (allNews.isEmpty()) {
             log.info("No news collected from any source");
             return 0;
         }
 
-        // 4. 중복 링크 추출 및 확인
+        // 5. 중복 링크 추출 및 확인
         Set<String> links = allNews.stream()
                 .map(CollectedNews::originalLink)
                 .collect(Collectors.toSet());

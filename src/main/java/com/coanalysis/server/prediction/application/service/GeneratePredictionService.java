@@ -2,6 +2,7 @@ package com.coanalysis.server.prediction.application.service;
 
 import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.infrastructure.repository.CryptoRepository;
+import com.coanalysis.server.infrastructure.repository.NewsRepository;
 import com.coanalysis.server.prediction.application.domain.CryptoPrediction;
 import com.coanalysis.server.prediction.application.enums.PredictionLabel;
 import com.coanalysis.server.prediction.application.port.in.GeneratePredictionUseCase;
@@ -30,6 +31,7 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
     private final LoadNewsAnalysisPort loadNewsAnalysisPort;
     private final FetchCryptoPricePort fetchCryptoPricePort;
     private final SavePredictionPort savePredictionPort;
+    private final NewsRepository newsRepository;
 
     private static final double POSITIVE_THRESHOLD = 0.6;
     private static final double NEGATIVE_THRESHOLD = 0.4;
@@ -180,5 +182,12 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
                 ticker, predictionLabel, positiveRatio, positiveCount + negativeCount + neutralCount);
 
         return savedPrediction;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countRecentNews(int hoursAgo) {
+        LocalDateTime from = LocalDateTime.now().minusHours(hoursAgo);
+        return newsRepository.countNewsPublishedSince(from);
     }
 }

@@ -16,10 +16,10 @@ public class NewsCollectionScheduler {
     private final CollectNewsUseCase collectNewsUseCase;
 
     /**
-     * 1시간마다 뉴스 수집 배치 실행
+     * 15분마다 뉴스 수집 배치 실행
      * Virtual Thread에서 자동 실행됨 (spring.threads.virtual.enabled=true)
      */
-    @Scheduled(fixedRate = 3600000) // 1시간 = 3,600,000ms
+    @Scheduled(fixedRate = 900000) // 15분 = 900,000ms
     public void collectNewsJob() {
         log.info("=== News collection batch started ===");
         long startTime = System.currentTimeMillis();
