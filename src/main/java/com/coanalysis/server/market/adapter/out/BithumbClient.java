@@ -5,6 +5,10 @@ import com.coanalysis.server.infrastructure.exception.ErrorCode;
 import com.coanalysis.server.market.adapter.out.dto.BithumbCandleDto;
 import com.coanalysis.server.market.adapter.out.dto.BithumbMarketDto;
 import com.coanalysis.server.market.adapter.out.dto.BithumbTickerDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +26,15 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.coanalysis.server.market.domain.CandleType;
+
 import javax.crypto.SecretKey;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +46,7 @@ import java.util.UUID;
 public class BithumbClient {
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${bithumb.api.base-url}")
     private String baseUrl;
@@ -98,20 +107,31 @@ public class BithumbClient {
         }
     }
 
-    public List<BithumbCandleDto> getCandles(String market, int unit, int count) {
-        String queryString = String.format("market=%s&count=%d", market, count);
-        String url = String.format("%s/v1/candles/minutes/%d?%s", baseUrl, unit, queryString);
+    public List<BithumbCandleDto> getCandles(String market, CandleType candleType, Integer unit, int count, LocalDateTime to) {
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("market=").append(market);
+        queryBuilder.append("&count=").append(count);
+
+        if (to != null) {
+            String toParam = to.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+            queryBuilder.append("&to=").append(toParam);
+        }
+
+        String queryString = queryBuilder.toString();
+        String url = buildCandleUrl(candleType, unit, queryString);
         log.info("Fetching candles from Bithumb API: {}", url);
 
         try {
             HttpEntity<Void> entity = new HttpEntity<>(createAuthHeaders(queryString));
-            ResponseEntity<List<BithumbCandleDto>> response = restTemplate.exchange(
+            ResponseEntity<String> response = restTemplate.exchange(
                     URI.create(url),
                     HttpMethod.GET,
                     entity,
-                    new ParameterizedTypeReference<>() {}
+                    String.class
             );
-            return response.getBody();
+
+            String body = response.getBody();
+            return parseCandleResponse(body);
         } catch (HttpClientErrorException e) {
             handleHttpError(e);
             throw new CustomException(ErrorCode.BITHUMB_API_ERROR);
@@ -119,6 +139,40 @@ public class BithumbClient {
             log.error("Failed to fetch candles from Bithumb API", e);
             throw new CustomException(ErrorCode.BITHUMB_API_ERROR, e.getMessage());
         }
+    }
+
+    private List<BithumbCandleDto> parseCandleResponse(String body) {
+        if (body == null || body.isBlank()) {
+            throw new CustomException(ErrorCode.BITHUMB_API_ERROR, "Empty response from Bithumb API");
+        }
+
+        try {
+            JsonNode rootNode = objectMapper.readTree(body);
+
+            if (rootNode.isArray()) {
+                return objectMapper.readValue(body, new TypeReference<List<BithumbCandleDto>>() {});
+            }
+
+            if (rootNode.has("error")) {
+                JsonNode errorNode = rootNode.get("error");
+                String errorMessage = errorNode.has("message") ? errorNode.get("message").asText() : "Unknown error";
+                log.error("Bithumb API returned error: {}", errorMessage);
+                throw new CustomException(ErrorCode.BITHUMB_INVALID_MARKET, errorMessage);
+            }
+
+            throw new CustomException(ErrorCode.BITHUMB_PARSE_ERROR, "Unexpected response format");
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse Bithumb API response: {}", body, e);
+            throw new CustomException(ErrorCode.BITHUMB_PARSE_ERROR, e.getMessage());
+        }
+    }
+
+    private String buildCandleUrl(CandleType candleType, Integer unit, String queryString) {
+        if (candleType == CandleType.MINUTES) {
+            int minuteUnit = (unit != null) ? unit : 1;
+            return String.format("%s/v1/candles/%s/%d?%s", baseUrl, candleType.getApiPath(), minuteUnit, queryString);
+        }
+        return String.format("%s/v1/candles/%s?%s", baseUrl, candleType.getApiPath(), queryString);
     }
 
     private HttpHeaders createAuthHeaders(String queryString) {
