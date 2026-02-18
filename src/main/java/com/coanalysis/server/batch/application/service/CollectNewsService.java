@@ -10,8 +10,8 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
-import com.coanalysis.server.batch.adapter.out.BlockMediaNewsClient;
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
+import com.coanalysis.server.batch.adapter.out.DigitalTodayNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
 import com.coanalysis.server.batch.application.domain.CollectedNews;
 import com.coanalysis.server.batch.application.port.in.CollectNewsUseCase;
@@ -37,7 +37,7 @@ public class CollectNewsService implements CollectNewsUseCase {
 
     private final CryptoCompareNewsClient englishNewsClient;
     private final TokenPostNewsClient tokenPostNewsClient;
-    private final BlockMediaNewsClient blockMediaNewsClient;
+    private final DigitalTodayNewsClient digitalTodayNewsClient;
     private final FindDuplicateNewsPort findDuplicateNewsPort;
     private final SaveCollectedNewsPort saveCollectedNewsPort;
     private final MapCryptoNewsPort mapCryptoNewsPort;
@@ -59,14 +59,14 @@ public class CollectNewsService implements CollectNewsUseCase {
         List<CollectedNews> tokenPostNews = tokenPostNewsClient.fetchLatestNews();
         log.info("Collected {} Korean news from TokenPost", tokenPostNews.size());
 
-        // 3. 한국어 뉴스 수집 (BlockMedia)
-        List<CollectedNews> blockMediaNews = blockMediaNewsClient.fetchLatestNews();
-        log.info("Collected {} Korean news from BlockMedia", blockMediaNews.size());
+        // 3. 한국어 뉴스 수집 (DigitalToday)
+        List<CollectedNews> digitalTodayNews = digitalTodayNewsClient.fetchLatestNews();
+        log.info("Collected {} Korean news from DigitalToday", digitalTodayNews.size());
 
         // 4. 전체 뉴스 합치기
         List<CollectedNews> allNews = Stream.concat(
                 Stream.concat(englishNews.stream(), tokenPostNews.stream()),
-                blockMediaNews.stream()
+                digitalTodayNews.stream()
         ).collect(Collectors.toList());
 
         if (allNews.isEmpty()) {
