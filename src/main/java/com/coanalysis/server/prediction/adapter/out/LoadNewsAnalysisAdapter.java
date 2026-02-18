@@ -72,4 +72,56 @@ public class LoadNewsAnalysisAdapter implements LoadNewsAnalysisPort {
 
         return sentimentCounts;
     }
+
+    @Override
+    public Map<String, Integer> countUnusedNewsBySentiment(String ticker, LocalDateTime lastPredictionTime, LocalDateTime to) {
+        QCryptoNews cryptoNews = QCryptoNews.cryptoNews;
+        QNews news = QNews.news;
+        QNewsAnalysis analysis = QNewsAnalysis.newsAnalysis;
+
+        // 마지막 예측 시간 이후에 발행된 뉴스만 조회 (이미 사용된 기사 제외)
+        List<com.querydsl.core.Tuple> results = queryFactory
+                .select(analysis.sentimentLabel, analysis.count())
+                .from(cryptoNews)
+                .join(news).on(cryptoNews.news.id.eq(news.id))
+                .leftJoin(analysis).on(analysis.news.id.eq(news.id))
+                .where(cryptoNews.crypto.ticker.eq(ticker.toUpperCase())
+                        .and(news.publishedAt.gt(lastPredictionTime))
+                        .and(news.publishedAt.loe(to)))
+                .groupBy(analysis.sentimentLabel)
+                .fetch();
+
+        Map<String, Integer> sentimentCounts = new HashMap<>();
+        sentimentCounts.put("positive", 0);
+        sentimentCounts.put("negative", 0);
+        sentimentCounts.put("neutral", 0);
+
+        for (com.querydsl.core.Tuple tuple : results) {
+            String label = tuple.get(analysis.sentimentLabel);
+            Long count = tuple.get(analysis.count());
+
+            if (label != null && count != null) {
+                String normalizedLabel = label.toLowerCase();
+                if (normalizedLabel.contains("positive")) {
+                    sentimentCounts.merge("positive", count.intValue(), Integer::sum);
+                } else if (normalizedLabel.contains("negative")) {
+                    sentimentCounts.merge("negative", count.intValue(), Integer::sum);
+                } else {
+                    sentimentCounts.merge("neutral", count.intValue(), Integer::sum);
+                }
+            } else {
+                if (count != null) {
+                    sentimentCounts.merge("neutral", count.intValue(), Integer::sum);
+                }
+            }
+        }
+
+        log.debug("Unused sentiment counts for {} after {}: positive={}, negative={}, neutral={}",
+                ticker, lastPredictionTime,
+                sentimentCounts.get("positive"),
+                sentimentCounts.get("negative"),
+                sentimentCounts.get("neutral"));
+
+        return sentimentCounts;
+    }
 }
