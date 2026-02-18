@@ -15,15 +15,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 @Component
 public class EnglishSentimentClient {
 
-    // BERT 모델은 512 토큰 제한 (영어 약 2000자)
-    // 안전하게 2000자로 설정 - 초과 시 truncate는 API 호출 시에만 적용
-    private static final int MAX_INPUT_LENGTH = 2000;
+    // BERT 모델은 512 토큰 제한 (영어 약 1500자로 안전하게 설정)
+    private static final int CHUNK_SIZE = 1500;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -52,7 +52,35 @@ public class EnglishSentimentClient {
             throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_EMPTY_TEXT);
         }
 
-        String truncatedText = truncateText(text);
+        // 텍스트를 청크로 분할
+        List<String> chunks = splitIntoChunks(text);
+        log.debug("Split text into {} chunks for English sentiment analysis", chunks.size());
+
+        // 각 청크별 분석 결과 수집 (청크 길이도 함께 저장)
+        List<SentimentAnalysisResult> chunkResults = new ArrayList<>();
+        List<Integer> chunkLengths = new ArrayList<>();
+
+        for (int i = 0; i < chunks.size(); i++) {
+            try {
+                String chunk = chunks.get(i);
+                SentimentAnalysisResult result = analyzeChunk(chunk);
+                chunkResults.add(result);
+                chunkLengths.add(chunk.length());
+                log.debug("Chunk {}/{} (length={}) analyzed: {}", i + 1, chunks.size(), chunk.length(), result.getSentiment());
+            } catch (Exception e) {
+                log.warn("Failed to analyze chunk {}/{}: {}", i + 1, chunks.size(), e.getMessage());
+            }
+        }
+
+        if (chunkResults.isEmpty()) {
+            throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_FAILED, "All chunk analyses failed");
+        }
+
+        // 청크 길이 기반 가중 평균 계산
+        return weightedAverageResults(chunkResults, chunkLengths);
+    }
+
+    private SentimentAnalysisResult analyzeChunk(String chunk) {
         String url = baseUrl + "/" + modelId;
 
         String customToken = apiTokenHolder.getToken();
@@ -65,7 +93,7 @@ public class EnglishSentimentClient {
             headers.setBearerAuth(tokenToUse);
         }
 
-        HuggingFaceRequest request = HuggingFaceRequest.of(truncatedText);
+        HuggingFaceRequest request = HuggingFaceRequest.of(chunk);
         HttpEntity<HuggingFaceRequest> entity = new HttpEntity<>(request, headers);
 
         try {
@@ -92,9 +120,6 @@ public class EnglishSentimentClient {
             }
 
             List<HuggingFaceSentimentResult> results = parsedResponse.get(0);
-            log.debug("English sentiment API response labels: {}", results.stream()
-                    .map(r -> r.getLabel() + "=" + r.getScore())
-                    .toList());
             return parseResults(results);
 
         } catch (CustomException e) {
@@ -106,6 +131,79 @@ public class EnglishSentimentClient {
             log.error("Failed to parse English sentiment API response: {}", e.getMessage());
             throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_PARSE_ERROR, e.getMessage());
         }
+    }
+
+    private List<String> splitIntoChunks(String text) {
+        List<String> chunks = new ArrayList<>();
+        if (text.length() <= CHUNK_SIZE) {
+            chunks.add(text);
+            return chunks;
+        }
+
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(start + CHUNK_SIZE, text.length());
+
+            // 문장 경계에서 자르기 시도 (마지막 청크가 아닌 경우)
+            if (end < text.length()) {
+                int lastPeriod = text.lastIndexOf(". ", end);
+                int lastNewline = text.lastIndexOf("\n", end);
+                int breakPoint = Math.max(lastPeriod, lastNewline);
+
+                if (breakPoint > start + CHUNK_SIZE / 2) {
+                    end = breakPoint + 1;
+                }
+            }
+
+            chunks.add(text.substring(start, end).trim());
+            start = end;
+        }
+
+        return chunks;
+    }
+
+    /**
+     * 청크 길이 기반 가중 평균 계산
+     * 글자 수가 많은 청크에 더 큰 가중치 부여
+     */
+    private SentimentAnalysisResult weightedAverageResults(List<SentimentAnalysisResult> results, List<Integer> lengths) {
+        double totalLength = lengths.stream().mapToInt(Integer::intValue).sum();
+
+        double weightedPositive = 0;
+        double weightedNeutral = 0;
+        double weightedNegative = 0;
+
+        for (int i = 0; i < results.size(); i++) {
+            double weight = lengths.get(i) / totalLength;
+            weightedPositive += results.get(i).getPositiveScore() * weight;
+            weightedNeutral += results.get(i).getNeutralScore() * weight;
+            weightedNegative += results.get(i).getNegativeScore() * weight;
+        }
+
+        Sentiment sentiment;
+        double topScore;
+
+        if (weightedPositive >= weightedNegative && weightedPositive >= weightedNeutral) {
+            sentiment = Sentiment.POSITIVE;
+            topScore = weightedPositive;
+        } else if (weightedNegative >= weightedPositive && weightedNegative >= weightedNeutral) {
+            sentiment = Sentiment.NEGATIVE;
+            topScore = weightedNegative;
+        } else {
+            sentiment = Sentiment.NEUTRAL;
+            topScore = weightedNeutral;
+        }
+
+        log.info("Weighted average of {} chunks: positive={}, neutral={}, negative={}, final={}",
+                results.size(), weightedPositive, weightedNeutral, weightedNegative, sentiment);
+
+        return SentimentAnalysisResult.builder()
+                .sentiment(sentiment)
+                .score(topScore)
+                .positiveScore(weightedPositive)
+                .neutralScore(weightedNeutral)
+                .negativeScore(weightedNegative)
+                .build();
     }
 
     private SentimentAnalysisResult parseResults(List<HuggingFaceSentimentResult> results) {
@@ -160,10 +258,4 @@ public class EnglishSentimentClient {
                 .build();
     }
 
-    private String truncateText(String text) {
-        if (text.length() <= MAX_INPUT_LENGTH) {
-            return text;
-        }
-        return text.substring(0, MAX_INPUT_LENGTH);
-    }
 }
