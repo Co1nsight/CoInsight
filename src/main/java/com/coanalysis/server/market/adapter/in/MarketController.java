@@ -5,10 +5,13 @@ import com.coanalysis.server.market.adapter.in.dto.CandleResponse;
 import com.coanalysis.server.market.adapter.in.dto.TickerResponse;
 import com.coanalysis.server.market.adapter.in.swagger.MarketControllerSwagger;
 import com.coanalysis.server.market.application.port.in.MarketUseCase;
+import com.coanalysis.server.market.domain.CandleType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,10 +25,13 @@ public class MarketController implements MarketControllerSwagger {
     @GetMapping("/candles/{symbol}")
     public ResponseEntity<ApiResponse<List<CandleResponse>>> getCandles(
             @PathVariable String symbol,
-            @RequestParam(defaultValue = "1") Integer unit,
-            @RequestParam(defaultValue = "200") Integer count
+            @RequestParam(defaultValue = "MINUTES") CandleType candleType,
+            @RequestParam(required = false) Integer unit,
+            @RequestParam(defaultValue = "200") Integer count,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
     ) {
-        List<CandleResponse> candles = marketUseCase.getCandles(symbol, unit, count);
+        Integer effectiveUnit = (candleType == CandleType.MINUTES && unit == null) ? 1 : unit;
+        List<CandleResponse> candles = marketUseCase.getCandles(symbol, candleType, effectiveUnit, count, to);
         return ResponseEntity.ok(ApiResponse.success(candles));
     }
 

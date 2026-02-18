@@ -3,6 +3,7 @@ package com.coanalysis.server.market.adapter.in.swagger;
 import com.coanalysis.server.infrastructure.response.ApiResponse;
 import com.coanalysis.server.market.adapter.in.dto.CandleResponse;
 import com.coanalysis.server.market.adapter.in.dto.TickerResponse;
+import com.coanalysis.server.market.domain.CandleType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,15 +13,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Tag(name = "Market", description = "시세 조회 API - 빗썸 거래소 연동을 통한 실시간 암호화폐 시세 정보를 제공합니다.")
 public interface MarketControllerSwagger {
 
     @Operation(
-            summary = "코인 분봉 차트 조회",
+            summary = "코인 캔들 차트 조회",
             description = """
-                    특정 코인의 분봉 캔들 데이터를 조회합니다.
+                    특정 코인의 캔들 데이터를 조회합니다. 분봉/일봉/주봉/월봉을 지원합니다.
 
                     **캔들 데이터 설명:**
                     - `timestamp`: 캔들 시작 시간 (Unix timestamp, milliseconds)
@@ -30,8 +32,19 @@ public interface MarketControllerSwagger {
                     - `closePrice`: 종가 (해당 기간 마지막 가격)
                     - `volume`: 거래량 (해당 기간 거래된 코인 수량)
 
-                    **지원 분봉 단위:**
-                    - 1분, 3분, 5분, 10분, 15분, 30분, 60분(1시간), 240분(4시간)
+                    **봉 타입 (candleType):**
+                    - `MINUTES`: 분봉 (unit 파라미터 필요)
+                    - `DAYS`: 일봉
+                    - `WEEKS`: 주봉
+                    - `MONTHS`: 월봉
+
+                    **분봉 단위 (unit) - candleType이 MINUTES일 때만 사용:**
+                    - 1, 3, 5, 10, 15, 30, 60, 240 (기본값: 1)
+
+                    **기간 설정 (to):**
+                    - ISO 8601 형식으로 마지막 캔들 시간을 지정
+                    - 예: 2024-01-15T09:00:00
+                    - 미지정 시 현재 시간 기준 최신 데이터 조회
 
                     **캐싱:**
                     - 데이터는 1분 단위로 캐싱되어 빠른 응답을 제공합니다.
@@ -39,6 +52,7 @@ public interface MarketControllerSwagger {
                     **사용 예시:**
                     - 차트 렌더링용 데이터 조회
                     - 기술적 분석 지표 계산
+                    - 과거 특정 시점 데이터 조회
                     """
     )
     @ApiResponses(value = {
@@ -127,11 +141,18 @@ public interface MarketControllerSwagger {
                     schema = @Schema(type = "string", allowableValues = {"BTC", "ETH", "XRP", "EOS", "TRX", "ADA", "LINK", "DOT"})
             ) String symbol,
             @Parameter(
+                    name = "candleType",
+                    description = "캔들 타입. MINUTES(분봉), DAYS(일봉), WEEKS(주봉), MONTHS(월봉)",
+                    required = false,
+                    example = "MINUTES",
+                    schema = @Schema(type = "string", defaultValue = "MINUTES", allowableValues = {"MINUTES", "DAYS", "WEEKS", "MONTHS"})
+            ) CandleType candleType,
+            @Parameter(
                     name = "unit",
-                    description = "분봉 단위. 지원: 1, 3, 5, 10, 15, 30, 60, 240",
+                    description = "분봉 단위. candleType이 MINUTES일 때만 사용. 지원: 1, 3, 5, 10, 15, 30, 60, 240",
                     required = false,
                     example = "1",
-                    schema = @Schema(type = "integer", defaultValue = "1", allowableValues = {"1", "3", "5", "10", "15", "30", "60", "240"})
+                    schema = @Schema(type = "integer", allowableValues = {"1", "3", "5", "10", "15", "30", "60", "240"})
             ) Integer unit,
             @Parameter(
                     name = "count",
@@ -139,7 +160,14 @@ public interface MarketControllerSwagger {
                     required = false,
                     example = "200",
                     schema = @Schema(type = "integer", defaultValue = "200", minimum = "1", maximum = "200")
-            ) Integer count
+            ) Integer count,
+            @Parameter(
+                    name = "to",
+                    description = "마지막 캔들 시간 (ISO 8601 형식). 이 시간 이전의 캔들 데이터를 조회. 미지정 시 현재 시간 기준",
+                    required = false,
+                    example = "2024-01-15T09:00:00",
+                    schema = @Schema(type = "string", format = "date-time")
+            ) LocalDateTime to
     );
 
     @Operation(

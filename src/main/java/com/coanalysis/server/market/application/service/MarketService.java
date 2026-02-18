@@ -8,11 +8,13 @@ import com.coanalysis.server.market.adapter.out.dto.BithumbCandleDto;
 import com.coanalysis.server.market.adapter.out.dto.BithumbMarketDto;
 import com.coanalysis.server.market.adapter.out.dto.BithumbTickerDto;
 import com.coanalysis.server.market.application.port.in.MarketUseCase;
+import com.coanalysis.server.market.domain.CandleType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +29,13 @@ public class MarketService implements MarketUseCase {
     private final BithumbClient bithumbClient;
 
     @Override
-    @Cacheable(value = CacheConfig.MARKET_CACHE, key = "'candles:' + #symbol + ':' + #unit + ':' + #count")
-    public List<CandleResponse> getCandles(String symbol, int unit, int count) {
-        log.info("Fetching candles for symbol: {}, unit: {}, count: {}", symbol, unit, count);
+    @Cacheable(value = CacheConfig.MARKET_CACHE, key = "'candles:' + #symbol + ':' + #candleType + ':' + #unit + ':' + #count + ':' + #to")
+    public List<CandleResponse> getCandles(String symbol, CandleType candleType, Integer unit, int count, LocalDateTime to) {
+        log.info("Fetching candles for symbol: {}, candleType: {}, unit: {}, count: {}, to: {}",
+                symbol, candleType, unit, count, to);
 
         String market = "KRW-" + symbol.toUpperCase();
-        List<BithumbCandleDto> candles = bithumbClient.getCandles(market, unit, count);
+        List<BithumbCandleDto> candles = bithumbClient.getCandles(market, candleType, unit, count, to);
 
         return CandleResponse.from(candles);
     }
