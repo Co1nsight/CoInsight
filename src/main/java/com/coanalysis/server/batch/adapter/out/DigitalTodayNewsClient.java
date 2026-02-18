@@ -19,16 +19,20 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * 디지털투데이(DigitalToday) RSS 뉴스 클라이언트
+ * 한국어 암호화폐/블록체인 뉴스를 수집합니다.
+ */
 @Slf4j
 @Component
-public class BlockMediaNewsClient implements FetchCryptoNewsPort {
+public class DigitalTodayNewsClient implements FetchCryptoNewsPort {
 
     private final String rssUrl;
     private final int maxRetries;
 
-    public BlockMediaNewsClient(
-            @Value("${blockmedia.rss.url:https://www.blockmedia.co.kr/feed/}") String rssUrl,
-            @Value("${blockmedia.rss.max-retries:3}") int maxRetries) {
+    public DigitalTodayNewsClient(
+            @Value("${digitaltoday.rss.url:https://www.digitaltoday.co.kr/rss/allArticle.xml}") String rssUrl,
+            @Value("${digitaltoday.rss.max-retries:3}") int maxRetries) {
         this.rssUrl = rssUrl;
         this.maxRetries = maxRetries;
     }
@@ -37,22 +41,23 @@ public class BlockMediaNewsClient implements FetchCryptoNewsPort {
     public List<CollectedNews> fetchLatestNews() {
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                log.info("Fetching Korean crypto news from BlockMedia (attempt {}/{})", attempt, maxRetries);
+                log.info("Fetching Korean crypto news from DigitalToday (attempt {}/{})", attempt, maxRetries);
 
                 SyndFeedInput input = new SyndFeedInput();
                 SyndFeed feed = input.build(new XmlReader(new URL(rssUrl)));
 
                 List<CollectedNews> news = feed.getEntries().stream()
+                        .filter(this::isCryptoRelated)
                         .map(this::toCollectedNews)
                         .collect(Collectors.toList());
 
-                log.info("Successfully fetched {} Korean news articles from BlockMedia", news.size());
+                log.info("Successfully fetched {} Korean crypto news articles from DigitalToday", news.size());
                 return news;
 
             } catch (Exception e) {
-                log.warn("Failed to fetch Korean news from BlockMedia (attempt {}/{}): {}", attempt, maxRetries, e.getMessage());
+                log.warn("Failed to fetch Korean news from DigitalToday (attempt {}/{}): {}", attempt, maxRetries, e.getMessage());
                 if (attempt == maxRetries) {
-                    log.error("All retry attempts exhausted for BlockMedia RSS", e);
+                    log.error("All retry attempts exhausted for DigitalToday RSS", e);
                     return Collections.emptyList();
                 }
                 try {
@@ -64,6 +69,24 @@ public class BlockMediaNewsClient implements FetchCryptoNewsPort {
             }
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * 암호화폐/블록체인 관련 뉴스인지 필터링
+     */
+    private boolean isCryptoRelated(SyndEntry entry) {
+        String title = entry.getTitle() != null ? entry.getTitle().toLowerCase() : "";
+        String desc = entry.getDescription() != null ? entry.getDescription().getValue().toLowerCase() : "";
+        String combined = title + " " + desc;
+
+        // 암호화폐/블록체인 관련 키워드
+        return combined.contains("비트코인") || combined.contains("이더리움") || combined.contains("암호화폐")
+                || combined.contains("가상자산") || combined.contains("블록체인") || combined.contains("코인")
+                || combined.contains("리플") || combined.contains("솔라나") || combined.contains("도지")
+                || combined.contains("nft") || combined.contains("디파이") || combined.contains("defi")
+                || combined.contains("bitcoin") || combined.contains("ethereum") || combined.contains("crypto")
+                || combined.contains("btc") || combined.contains("eth") || combined.contains("xrp")
+                || combined.contains("스테이블코인") || combined.contains("etf") || combined.contains("sec");
     }
 
     private CollectedNews toCollectedNews(SyndEntry entry) {
@@ -82,7 +105,7 @@ public class BlockMediaNewsClient implements FetchCryptoNewsPort {
                 cleanHtml(title),
                 link,
                 cleanHtml(description),
-                "BlockMedia",
+                "DigitalToday",
                 publishedAt,
                 Language.KO
         );
