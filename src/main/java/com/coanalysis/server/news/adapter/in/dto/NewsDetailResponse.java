@@ -78,6 +78,13 @@ public class NewsDetailResponse {
 
         @Schema(description = "실제 가격 변동 결과 (기사 발행 후)")
         private PriceChange priceChange;
+
+        // QueryDSL Projections.constructor에서 사용하는 3개 파라미터 생성자
+        public RelatedCrypto(String ticker, String name, String logoUrl) {
+            this.ticker = ticker;
+            this.name = name;
+            this.logoUrl = logoUrl;
+        }
     }
 
     @Getter
