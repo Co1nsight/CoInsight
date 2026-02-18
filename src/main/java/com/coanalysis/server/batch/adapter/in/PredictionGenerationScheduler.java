@@ -16,25 +16,26 @@ public class PredictionGenerationScheduler {
 
     private final GeneratePredictionUseCase generatePredictionUseCase;
 
-    private static final int MINIMUM_NEWS_COUNT = 10;
+    private static final int MINIMUM_NEWS_COUNT = 20;
+    private static final int PREDICTION_INTERVAL_HOURS = 12;
 
     /**
-     * 매시간 30분에 모든 코인에 대한 예측 생성
-     * - 뉴스 수집(0분, 15분, 30분, 45분)과 겹치지 않도록 30분에 실행
-     * - 최근 1시간 동안 수집된 뉴스가 10개 이하이면 다음 배치로 스킵
+     * 12시간마다 모든 코인에 대한 예측 생성 (0시 30분, 12시 30분)
+     * - 뉴스 수집과 겹치지 않도록 30분에 실행
+     * - 최근 12시간 동안 수집된 뉴스가 20개 이하이면 스킵
      * cron: 초 분 시 일 월 요일
      */
-    @Scheduled(cron = "0 30 * * * *")
-    public void generateHourlyPredictions() {
-        log.info("=== Hourly prediction generation started ===");
+    @Scheduled(cron = "0 30 0,12 * * *")
+    public void generatePredictions() {
+        log.info("=== Prediction generation started ({}h interval) ===", PREDICTION_INTERVAL_HOURS);
         long startTime = System.currentTimeMillis();
 
         try {
-            // 최근 1시간 동안 수집된 뉴스 개수 확인
-            long recentNewsCount = generatePredictionUseCase.countRecentNews(1);
+            // 최근 12시간 동안 수집된 뉴스 개수 확인
+            long recentNewsCount = generatePredictionUseCase.countRecentNews(PREDICTION_INTERVAL_HOURS);
 
-            if (recentNewsCount <= MINIMUM_NEWS_COUNT) {
-                log.info("=== Hourly prediction generation skipped === Recent news count: {} (minimum: {}). Will accumulate for next batch.",
+            if (recentNewsCount < MINIMUM_NEWS_COUNT) {
+                log.info("=== Prediction generation skipped === Recent news count: {} (minimum: {}). Insufficient data.",
                         recentNewsCount, MINIMUM_NEWS_COUNT);
                 return;
             }
@@ -42,12 +43,12 @@ public class PredictionGenerationScheduler {
             List<CryptoPrediction> predictions = generatePredictionUseCase.generateAllPredictions();
             long duration = System.currentTimeMillis() - startTime;
 
-            log.info("=== Hourly prediction generation completed === Generated: {} predictions, Recent news: {}, Duration: {}ms",
+            log.info("=== Prediction generation completed === Generated: {} predictions, Recent news: {}, Duration: {}ms",
                     predictions.size(), recentNewsCount, duration);
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            log.error("=== Hourly prediction generation failed === Duration: {}ms, Error: {}",
+            log.error("=== Prediction generation failed === Duration: {}ms, Error: {}",
                     duration, e.getMessage(), e);
         }
     }
