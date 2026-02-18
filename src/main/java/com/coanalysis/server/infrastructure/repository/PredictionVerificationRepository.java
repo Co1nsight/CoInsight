@@ -30,4 +30,20 @@ public interface PredictionVerificationRepository extends JpaRepository<Predicti
     long countSuccessByTickerAndIntervalType(@Param("ticker") String ticker, @Param("intervalType") IntervalType intervalType);
 
     boolean existsByPredictionIdAndIntervalType(Long predictionId, IntervalType intervalType);
+
+    /**
+     * 특정 코인의 특정 시점 이후 가장 가까운 예측의 검증 결과 조회
+     * 기사 발행 시점 이후의 예측 중 가장 빠른 검증 결과를 반환합니다.
+     */
+    @Query("""
+        SELECT v FROM PredictionVerification v
+        JOIN v.prediction p
+        WHERE p.crypto.ticker = :ticker
+        AND p.predictionTime >= :afterTime
+        ORDER BY p.predictionTime ASC, v.intervalType ASC
+        LIMIT 1
+        """)
+    PredictionVerification findFirstVerificationAfterTime(
+            @Param("ticker") String ticker,
+            @Param("afterTime") java.time.LocalDateTime afterTime);
 }
