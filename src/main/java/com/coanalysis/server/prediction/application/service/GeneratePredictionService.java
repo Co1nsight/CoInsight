@@ -2,6 +2,7 @@ package com.coanalysis.server.prediction.application.service;
 
 import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.infrastructure.repository.CryptoRepository;
+import com.coanalysis.server.infrastructure.repository.CryptoPredictionRepository;
 import com.coanalysis.server.infrastructure.repository.NewsRepository;
 import com.coanalysis.server.prediction.application.domain.CryptoPrediction;
 import com.coanalysis.server.prediction.application.enums.PredictionLabel;
@@ -32,6 +33,7 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
     private final FetchCryptoPricePort fetchCryptoPricePort;
     private final SavePredictionPort savePredictionPort;
     private final NewsRepository newsRepository;
+    private final CryptoPredictionRepository cryptoPredictionRepository;
 
     private static final double POSITIVE_THRESHOLD = 0.6;
     private static final double NEGATIVE_THRESHOLD = 0.4;
@@ -47,11 +49,21 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
             return null;
         }
         Crypto crypto = cryptoOpt.get();
-
-        // 최근 24시간 뉴스 감성 분석 결과 조회
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime from = now.minusHours(24);
-        Map<String, Integer> sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
+
+        // 해당 코인의 마지막 예측 시간 조회
+        LocalDateTime lastPredictionTime = cryptoPredictionRepository.findLastPredictionTimeByTicker(ticker.toUpperCase());
+
+        // 마지막 예측 이후의 뉴스만 조회 (기사 중복 사용 방지)
+        Map<String, Integer> sentimentCounts;
+        if (lastPredictionTime != null) {
+            sentimentCounts = loadNewsAnalysisPort.countUnusedNewsBySentiment(ticker, lastPredictionTime, now);
+            log.debug("Using news after last prediction at {} for {}", lastPredictionTime, ticker);
+        } else {
+            LocalDateTime from = now.minusHours(24);
+            sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
+            log.debug("First prediction for {}, using last 24h news", ticker);
+        }
 
         int positiveCount = sentimentCounts.getOrDefault("positive", 0);
         int negativeCount = sentimentCounts.getOrDefault("negative", 0);
@@ -132,11 +144,22 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
 
     private CryptoPrediction generatePredictionWithPrice(Crypto crypto, Double currentPrice) {
         String ticker = crypto.getTicker();
-
-        // 최근 24시간 뉴스 감성 분석 결과 조회
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime from = now.minusHours(24);
-        Map<String, Integer> sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
+
+        // 해당 코인의 마지막 예측 시간 조회
+        LocalDateTime lastPredictionTime = cryptoPredictionRepository.findLastPredictionTimeByTicker(ticker);
+
+        // 마지막 예측 이후의 뉴스만 조회 (기사 중복 사용 방지)
+        // 첫 예측인 경우 최근 24시간 뉴스 사용
+        Map<String, Integer> sentimentCounts;
+        if (lastPredictionTime != null) {
+            sentimentCounts = loadNewsAnalysisPort.countUnusedNewsBySentiment(ticker, lastPredictionTime, now);
+            log.debug("Using news after last prediction at {} for {}", lastPredictionTime, ticker);
+        } else {
+            LocalDateTime from = now.minusHours(24);
+            sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
+            log.debug("First prediction for {}, using last 24h news", ticker);
+        }
 
         int positiveCount = sentimentCounts.getOrDefault("positive", 0);
         int negativeCount = sentimentCounts.getOrDefault("negative", 0);

@@ -19,11 +19,12 @@ public class PredictionGenerationScheduler {
     private static final int MINIMUM_NEWS_COUNT = 10;
 
     /**
-     * 매시간 정각에 모든 코인에 대한 예측 생성
-     * 최근 1시간 동안 수집된 뉴스가 10개 이하이면 다음 배치로 스킵
+     * 매시간 30분에 모든 코인에 대한 예측 생성
+     * - 뉴스 수집(0분, 15분, 30분, 45분)과 겹치지 않도록 30분에 실행
+     * - 최근 1시간 동안 수집된 뉴스가 10개 이하이면 다음 배치로 스킵
      * cron: 초 분 시 일 월 요일
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 30 * * * *")
     public void generateHourlyPredictions() {
         log.info("=== Hourly prediction generation started ===");
         long startTime = System.currentTimeMillis();

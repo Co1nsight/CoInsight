@@ -25,4 +25,7 @@ public interface CryptoPredictionRepository extends JpaRepository<CryptoPredicti
            "(SELECT v.prediction.id FROM PredictionVerification v WHERE v.intervalType = :intervalType)")
     List<CryptoPrediction> findUnverifiedPredictions(@Param("targetTime") LocalDateTime targetTime,
                                                       @Param("intervalType") com.coanalysis.server.prediction.application.enums.IntervalType intervalType);
+
+    @Query("SELECT MAX(p.predictionTime) FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker")
+    LocalDateTime findLastPredictionTimeByTicker(@Param("ticker") String ticker);
 }
