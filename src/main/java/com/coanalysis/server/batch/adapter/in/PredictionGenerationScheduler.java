@@ -16,25 +16,37 @@ public class PredictionGenerationScheduler {
 
     private final GeneratePredictionUseCase generatePredictionUseCase;
 
+    private static final int MINIMUM_NEWS_COUNT = 10;
+
     /**
-     * 매일 09:00에 모든 코인에 대한 예측 생성
+     * 매시간 정각에 모든 코인에 대한 예측 생성
+     * 최근 1시간 동안 수집된 뉴스가 10개 이하이면 다음 배치로 스킵
      * cron: 초 분 시 일 월 요일
      */
-    @Scheduled(cron = "0 0 9 * * *")
-    public void generateDailyPredictions() {
-        log.info("=== Daily prediction generation started ===");
+    @Scheduled(cron = "0 0 * * * *")
+    public void generateHourlyPredictions() {
+        log.info("=== Hourly prediction generation started ===");
         long startTime = System.currentTimeMillis();
 
         try {
+            // 최근 1시간 동안 수집된 뉴스 개수 확인
+            long recentNewsCount = generatePredictionUseCase.countRecentNews(1);
+
+            if (recentNewsCount <= MINIMUM_NEWS_COUNT) {
+                log.info("=== Hourly prediction generation skipped === Recent news count: {} (minimum: {}). Will accumulate for next batch.",
+                        recentNewsCount, MINIMUM_NEWS_COUNT);
+                return;
+            }
+
             List<CryptoPrediction> predictions = generatePredictionUseCase.generateAllPredictions();
             long duration = System.currentTimeMillis() - startTime;
 
-            log.info("=== Daily prediction generation completed === Generated: {} predictions, Duration: {}ms",
-                    predictions.size(), duration);
+            log.info("=== Hourly prediction generation completed === Generated: {} predictions, Recent news: {}, Duration: {}ms",
+                    predictions.size(), recentNewsCount, duration);
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            log.error("=== Daily prediction generation failed === Duration: {}ms, Error: {}",
+            log.error("=== Hourly prediction generation failed === Duration: {}ms, Error: {}",
                     duration, e.getMessage(), e);
         }
     }
