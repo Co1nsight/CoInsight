@@ -37,7 +37,7 @@ public interface PredictionVerificationRepository extends JpaRepository<Predicti
      */
     @Query("""
         SELECT v FROM PredictionVerification v
-        JOIN v.prediction p
+        JOIN FETCH v.prediction p
         WHERE p.crypto.ticker = :ticker
         AND p.predictionTime >= :afterTime
         ORDER BY p.predictionTime ASC, v.intervalType ASC
