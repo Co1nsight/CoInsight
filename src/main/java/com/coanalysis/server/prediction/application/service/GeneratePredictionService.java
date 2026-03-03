@@ -85,6 +85,13 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
             predictionLabel = PredictionLabel.NEUTRAL;
         }
 
+        // 중립 예측은 저장하지 않음
+        if (predictionLabel == PredictionLabel.NEUTRAL) {
+            log.info("Skipping neutral prediction for {}: positiveRatio={}, newsCount={}",
+                    ticker, positiveRatio, positiveCount + negativeCount + neutralCount);
+            return null;
+        }
+
         // 현재 가격 조회
         Double currentPrice = fetchCryptoPricePort.fetchCurrentPrice(ticker);
         if (currentPrice == null) {
@@ -179,6 +186,13 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
             predictionLabel = PredictionLabel.DOWN;
         } else {
             predictionLabel = PredictionLabel.NEUTRAL;
+        }
+
+        // 중립 예측은 저장하지 않음
+        if (predictionLabel == PredictionLabel.NEUTRAL) {
+            log.debug("Skipping neutral prediction for {}: positiveRatio={}, newsCount={}",
+                    ticker, positiveRatio, positiveCount + negativeCount + neutralCount);
+            return null;
         }
 
         // 가격이 없으면 0으로 설정
