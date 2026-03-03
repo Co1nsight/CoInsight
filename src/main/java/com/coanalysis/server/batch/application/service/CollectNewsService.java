@@ -1,5 +1,6 @@
 package com.coanalysis.server.batch.application.service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
+import com.coanalysis.server.batch.adapter.out.ArticleContentScraper;
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
 import com.coanalysis.server.batch.adapter.out.DigitalTodayNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
@@ -35,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CollectNewsService implements CollectNewsUseCase {
 
+    private final ArticleContentScraper articleContentScraper;
     private final CryptoCompareNewsClient englishNewsClient;
     private final TokenPostNewsClient tokenPostNewsClient;
     private final DigitalTodayNewsClient digitalTodayNewsClient;
@@ -92,19 +95,22 @@ public class CollectNewsService implements CollectNewsUseCase {
             return 0;
         }
 
-        // 6. 모든 코인 정보 조회 (ticker, 한글명, 영문명)
+        // 6. RSS 기사 전문 스크래핑 (중복 필터링 후 새 기사만)
+        uniqueNews = scrapeRssArticles(uniqueNews);
+
+        // 7. 모든 코인 정보 조회 (ticker, 한글명, 영문명)
         List<Crypto> allCryptos = mapCryptoNewsPort.getAllCryptos();
         Map<String, String> keywordToTicker = buildKeywordToTickerMap(allCryptos);
         Set<String> knownTickers = allCryptos.stream()
                 .map(Crypto::getTicker)
                 .collect(Collectors.toSet());
 
-        // 7. 뉴스 저장
+        // 8. 뉴스 저장
         List<News> savedNewsList = saveCollectedNewsPort.saveAll(uniqueNews);
         log.info("Saved {} new news articles", savedNewsList.size());
         em.flush();
 
-        // 8. 감성 분석 및 코인 매핑 처리
+        // 9. 감성 분석 및 코인 매핑 처리
         for (int i = 0; i < savedNewsList.size(); i++) {
             final News savedNews = savedNewsList.get(i);
             final CollectedNews collected = uniqueNews.get(i);
@@ -189,6 +195,30 @@ public class CollectNewsService implements CollectNewsUseCase {
                 knownTickers,
                 keywordToTicker
         );
+    }
+
+    private List<CollectedNews> scrapeRssArticles(List<CollectedNews> newsList) {
+        List<CollectedNews> result = new ArrayList<>(newsList.size());
+        int scrapedCount = 0;
+
+        for (CollectedNews news : newsList) {
+            if (!articleContentScraper.isRssSource(news.source())) {
+                result.add(news);
+                continue;
+            }
+
+            String fullContent = articleContentScraper.scrapeContent(news.originalLink(), news.source());
+            if (fullContent != null) {
+                result.add(news.withBody(fullContent));
+                scrapedCount++;
+            } else {
+                result.add(news);
+            }
+        }
+
+        log.info("Scraped full content for {}/{} RSS articles", scrapedCount,
+                newsList.stream().filter(n -> articleContentScraper.isRssSource(n.source())).count());
+        return result;
     }
 
     private String buildTextForAnalysis(String title, String content) {

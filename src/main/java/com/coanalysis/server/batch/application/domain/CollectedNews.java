@@ -50,6 +50,13 @@ public record CollectedNews(
         );
     }
 
+    public CollectedNews withBody(String newBody) {
+        return new CollectedNews(
+            externalId, title, newBody, originalLink, source,
+            publishedAt, categories, tags, language
+        );
+    }
+
     private static Set<String> parseDelimitedString(String value) {
         if (value == null || value.isBlank()) {
             return Set.of();

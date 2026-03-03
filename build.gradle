@@ -47,6 +47,9 @@ dependencies {
 	// RSS parsing for TokenPost news
 	implementation 'com.rometools:rome:2.1.0'
 
+	// HTML parsing for article scraping
+	implementation 'org.jsoup:jsoup:1.18.3'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
