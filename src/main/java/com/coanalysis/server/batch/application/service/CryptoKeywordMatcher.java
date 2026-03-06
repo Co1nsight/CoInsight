@@ -78,7 +78,6 @@ public class CryptoKeywordMatcher {
         // LINK 별명
         COIN_ALIASES.put("체인링크", "LINK");
         COIN_ALIASES.put("chainlink", "LINK");
-        COIN_ALIASES.put("link", "LINK");
 
         // TRX 별명
         COIN_ALIASES.put("트론", "TRX");
@@ -131,7 +130,6 @@ public class CryptoKeywordMatcher {
         // NEAR 별명
         COIN_ALIASES.put("니어", "NEAR");
         COIN_ALIASES.put("near protocol", "NEAR");
-        COIN_ALIASES.put("near", "NEAR");
 
         // APT 별명
         COIN_ALIASES.put("앱토스", "APT");
@@ -195,7 +193,6 @@ public class CryptoKeywordMatcher {
 
         // FLOW 별명
         COIN_ALIASES.put("플로우", "FLOW");
-        COIN_ALIASES.put("flow", "FLOW");
 
         // GALA 별명
         COIN_ALIASES.put("갈라", "GALA");
@@ -462,16 +459,8 @@ public class CryptoKeywordMatcher {
      */
     private void matchTickers(String text, Set<String> knownTickers, Set<String> matched) {
         for (String ticker : knownTickers) {
-            // 짧은 티커는 단어 경계 검사 필수
-            if (SHORT_TICKERS.contains(ticker) || ticker.length() <= 3) {
-                if (containsWordExact(text, ticker)) {
-                    matched.add(ticker);
-                }
-            } else {
-                // 긴 티커는 대소문자 무시 포함 검사
-                if (text.toUpperCase().contains(ticker)) {
-                    matched.add(ticker);
-                }
+            if (containsWordExact(text, ticker)) {
+                matched.add(ticker);
             }
         }
     }
