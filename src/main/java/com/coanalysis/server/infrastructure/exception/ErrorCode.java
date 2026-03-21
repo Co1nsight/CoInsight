@@ -22,6 +22,7 @@ public enum ErrorCode {
     SENTIMENT_ANALYSIS_EMPTY_TEXT(HttpStatus.BAD_REQUEST, "S002", "분석할 텍스트가 비어있습니다."),
     SENTIMENT_ANALYSIS_API_ERROR(HttpStatus.BAD_GATEWAY, "S003", "외부 API 호출에 실패했습니다."),
     SENTIMENT_ANALYSIS_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S004", "API 응답 파싱에 실패했습니다."),
+    HUGGINGFACE_QUOTA_EXCEEDED(HttpStatus.PAYMENT_REQUIRED, "S005", "HuggingFace API 크레딧이 소진되었습니다."),
 
     // Crypto
     CRYPTO_NOT_FOUND(HttpStatus.NOT_FOUND, "CR001", "암호화폐를 찾을 수 없습니다."),

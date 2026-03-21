@@ -99,9 +99,21 @@
   },
   "hotPaths": [
     {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/service/GeneratePredictionService.java",
+      "accessCount": 10,
+      "lastAccessed": 1774096856184,
+      "type": "file"
+    },
+    {
       "path": "src/main/java/com/coanalysis/server/news/adapter/out/HuggingFaceClient.java",
-      "accessCount": 7,
-      "lastAccessed": 1774096476831,
+      "accessCount": 10,
+      "lastAccessed": 1774099364460,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/CryptoPredictionRepository.java",
+      "accessCount": 6,
+      "lastAccessed": 1774096822909,
       "type": "file"
     },
     {
@@ -123,15 +135,9 @@
       "type": "file"
     },
     {
-      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/CryptoPredictionRepository.java",
+      "path": "src/main/java/com/coanalysis/server/batch/application/service/CollectNewsService.java",
       "accessCount": 4,
-      "lastAccessed": 1774096193180,
-      "type": "file"
-    },
-    {
-      "path": "src/main/java/com/coanalysis/server/prediction/application/service/GeneratePredictionService.java",
-      "accessCount": 4,
-      "lastAccessed": 1774096228149,
+      "lastAccessed": 1774099379805,
       "type": "file"
     },
     {
@@ -150,6 +156,30 @@
       "path": "src/main/java/com/coanalysis/server/news/application/domain/NewsAnalysis.java",
       "accessCount": 2,
       "lastAccessed": 1774095988131,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/PredictionVerificationRepository.java",
+      "accessCount": 2,
+      "lastAccessed": 1774096827627,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/dto/CryptoCompareNewsResponse.java",
+      "accessCount": 2,
+      "lastAccessed": 1774099199658,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/CryptoCompareNewsClient.java",
+      "accessCount": 2,
+      "lastAccessed": 1774099205292,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/exception/ErrorCode.java",
+      "accessCount": 2,
+      "lastAccessed": 1774099350059,
       "type": "file"
     },
     {
@@ -264,6 +294,18 @@
       "path": "src/main/java/com/coanalysis/server/prediction/application/dto/NewsSignalItem.java",
       "accessCount": 1,
       "lastAccessed": 1774096151874,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/out/dto/CryptoCompareNewsItem.java",
+      "accessCount": 1,
+      "lastAccessed": 1774099183225,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/exception/CustomException.java",
+      "accessCount": 1,
+      "lastAccessed": 1774099339392,
       "type": "file"
     }
   ],

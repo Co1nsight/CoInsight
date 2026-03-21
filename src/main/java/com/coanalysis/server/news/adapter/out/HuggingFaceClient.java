@@ -67,6 +67,11 @@ public class HuggingFaceClient {
                 chunkResults.add(result);
                 chunkLengths.add(chunk.length());
                 log.debug("Chunk {}/{} (length={}) analyzed: {}", i + 1, chunks.size(), chunk.length(), result.getSentiment());
+            } catch (CustomException e) {
+                if (e.getErrorCode() == ErrorCode.HUGGINGFACE_QUOTA_EXCEEDED) {
+                    throw e;
+                }
+                log.warn("Failed to analyze chunk {}/{}: {}", i + 1, chunks.size(), e.getMessage());
             } catch (Exception e) {
                 log.warn("Failed to analyze chunk {}/{}: {}", i + 1, chunks.size(), e.getMessage());
             }
@@ -124,6 +129,13 @@ public class HuggingFaceClient {
 
         } catch (CustomException e) {
             throw e;
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 402) {
+                log.error("HuggingFace API quota exceeded: {}", e.getMessage());
+                throw new CustomException(ErrorCode.HUGGINGFACE_QUOTA_EXCEEDED, e.getMessage());
+            }
+            log.error("Failed to call HuggingFace API: {}", e.getMessage());
+            throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_API_ERROR, e.getMessage());
         } catch (RestClientException e) {
             log.error("Failed to call HuggingFace API: {}", e.getMessage());
             throw new CustomException(ErrorCode.SENTIMENT_ANALYSIS_API_ERROR, e.getMessage());
