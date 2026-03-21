@@ -29,6 +29,7 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
     private final SavePredictionPort savePredictionPort;
 
     private static final double NEUTRAL_THRESHOLD = 1.0; // 1% 미만 변동 시 중립 성공
+    private static final double MIN_CHANGE_THRESHOLD = 0.5; // 의미있는 최소 가격 변동 (0.5%)
 
     @Override
     public List<PredictionVerification> verifyPendingPredictions(IntervalType intervalType) {
@@ -133,8 +134,8 @@ public class VerifyPredictionService implements VerifyPredictionUseCase {
 
     private boolean determineSuccess(PredictionLabel predictionLabel, double priceChangePercent) {
         return switch (predictionLabel) {
-            case UP -> priceChangePercent > 0;
-            case DOWN -> priceChangePercent < 0;
+            case UP -> priceChangePercent > MIN_CHANGE_THRESHOLD;
+            case DOWN -> priceChangePercent < -MIN_CHANGE_THRESHOLD;
             case NEUTRAL -> Math.abs(priceChangePercent) < NEUTRAL_THRESHOLD;
         };
     }

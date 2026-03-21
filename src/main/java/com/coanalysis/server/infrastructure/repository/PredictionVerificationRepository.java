@@ -31,6 +31,11 @@ public interface PredictionVerificationRepository extends JpaRepository<Predicti
 
     boolean existsByPredictionIdAndIntervalType(Long predictionId, IntervalType intervalType);
 
+    long countByPredictionId(Long predictionId);
+
+    @Query("SELECT COUNT(v) FROM PredictionVerification v WHERE v.prediction.id = :predictionId AND v.isSuccess = true")
+    long countSuccessfulByPredictionId(@Param("predictionId") Long predictionId);
+
     /**
      * 특정 코인의 특정 시점 이후 가장 가까운 예측의 검증 결과 조회
      * 기사 발행 시점 이후의 예측 중 가장 빠른 검증 결과를 반환합니다.

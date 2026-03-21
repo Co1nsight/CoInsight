@@ -8,3 +8,6 @@
 /.gradle/8.14.3/
 /.gradle/buildOutputCleanup/
 /.gradle/vcs-1/
+/out/
+/.idea/
+/.omc/

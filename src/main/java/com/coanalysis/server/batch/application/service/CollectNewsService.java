@@ -22,6 +22,8 @@ import com.coanalysis.server.batch.application.port.out.MapCryptoNewsPort;
 import com.coanalysis.server.batch.application.port.out.SaveCollectedNewsPort;
 import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.infrastructure.repository.NewsAnalysisRepository;
+import com.coanalysis.server.infrastructure.exception.CustomException;
+import com.coanalysis.server.infrastructure.exception.ErrorCode;
 import com.coanalysis.server.news.adapter.out.SentimentAnalyzerFactory;
 import com.coanalysis.server.news.adapter.out.dto.SentimentAnalysisResult;
 import com.coanalysis.server.news.application.domain.News;
@@ -115,7 +117,16 @@ public class CollectNewsService implements CollectNewsUseCase {
             final News savedNews = savedNewsList.get(i);
             final CollectedNews collected = uniqueNews.get(i);
 
-            processNewsItem(savedNews, collected, knownTickers, keywordToTicker);
+            try {
+                processNewsItem(savedNews, collected, knownTickers, keywordToTicker);
+            } catch (CustomException e) {
+                if (e.getErrorCode() == ErrorCode.HUGGINGFACE_QUOTA_EXCEEDED) {
+                    log.warn("HuggingFace API 크레딧 소진. 남은 {} 건의 감성 분석을 중단합니다.",
+                            savedNewsList.size() - i);
+                    break;
+                }
+                log.warn("Failed to process news ID {}: {}", savedNews.getId(), e.getMessage());
+            }
         }
 
         log.info("News collection batch completed. Processed {} news articles (EN: {}, KO: {})",
@@ -152,6 +163,11 @@ public class CollectNewsService implements CollectNewsUseCase {
                 log.debug("News ID {} mapped to coins: {}", savedNews.getId(), matchedTickers);
             }
 
+        } catch (CustomException e) {
+            if (e.getErrorCode() == ErrorCode.HUGGINGFACE_QUOTA_EXCEEDED) {
+                throw e;
+            }
+            log.warn("Failed to process news ID {}: {}", savedNews.getId(), e.getMessage());
         } catch (Exception e) {
             log.warn("Failed to process news ID {}: {}", savedNews.getId(), e.getMessage());
         }
