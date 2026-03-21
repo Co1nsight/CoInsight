@@ -3,6 +3,7 @@ package com.coanalysis.server.prediction.adapter.out;
 import com.coanalysis.server.crypto.application.domain.QCryptoNews;
 import com.coanalysis.server.news.application.domain.QNews;
 import com.coanalysis.server.news.application.domain.QNewsAnalysis;
+import com.coanalysis.server.prediction.application.dto.NewsSignalItem;
 import com.coanalysis.server.prediction.application.port.out.LoadNewsAnalysisPort;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -123,5 +124,56 @@ public class LoadNewsAnalysisAdapter implements LoadNewsAnalysisPort {
                 sentimentCounts.get("neutral"));
 
         return sentimentCounts;
+    }
+
+    @Override
+    public List<NewsSignalItem> loadNewsSignals(String ticker, LocalDateTime from, LocalDateTime to) {
+        QCryptoNews cryptoNews = QCryptoNews.cryptoNews;
+        QNews news = QNews.news;
+        QNewsAnalysis analysis = QNewsAnalysis.newsAnalysis;
+
+        return queryFactory
+                .select(analysis.sentimentLabel, analysis.sentimentScore, news.publishedAt)
+                .from(cryptoNews)
+                .join(news).on(cryptoNews.news.id.eq(news.id))
+                .join(analysis).on(analysis.news.id.eq(news.id))
+                .where(cryptoNews.crypto.ticker.eq(ticker.toUpperCase())
+                        .and(news.publishedAt.between(from, to))
+                        .and(analysis.sentimentLabel.isNotNull())
+                        .and(analysis.sentimentScore.isNotNull()))
+                .fetch()
+                .stream()
+                .map(tuple -> NewsSignalItem.builder()
+                        .sentimentLabel(tuple.get(analysis.sentimentLabel))
+                        .sentimentScore(tuple.get(analysis.sentimentScore))
+                        .publishedAt(tuple.get(news.publishedAt))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<NewsSignalItem> loadUnusedNewsSignals(String ticker, LocalDateTime lastPredictionTime, LocalDateTime to) {
+        QCryptoNews cryptoNews = QCryptoNews.cryptoNews;
+        QNews news = QNews.news;
+        QNewsAnalysis analysis = QNewsAnalysis.newsAnalysis;
+
+        return queryFactory
+                .select(analysis.sentimentLabel, analysis.sentimentScore, news.publishedAt)
+                .from(cryptoNews)
+                .join(news).on(cryptoNews.news.id.eq(news.id))
+                .join(analysis).on(analysis.news.id.eq(news.id))
+                .where(cryptoNews.crypto.ticker.eq(ticker.toUpperCase())
+                        .and(news.publishedAt.gt(lastPredictionTime))
+                        .and(news.publishedAt.loe(to))
+                        .and(analysis.sentimentLabel.isNotNull())
+                        .and(analysis.sentimentScore.isNotNull()))
+                .fetch()
+                .stream()
+                .map(tuple -> NewsSignalItem.builder()
+                        .sentimentLabel(tuple.get(analysis.sentimentLabel))
+                        .sentimentScore(tuple.get(analysis.sentimentScore))
+                        .publishedAt(tuple.get(news.publishedAt))
+                        .build())
+                .toList();
     }
 }

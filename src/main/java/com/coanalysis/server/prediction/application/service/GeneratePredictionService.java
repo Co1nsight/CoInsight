@@ -5,6 +5,7 @@ import com.coanalysis.server.infrastructure.repository.CryptoRepository;
 import com.coanalysis.server.infrastructure.repository.CryptoPredictionRepository;
 import com.coanalysis.server.infrastructure.repository.NewsRepository;
 import com.coanalysis.server.prediction.application.domain.CryptoPrediction;
+import com.coanalysis.server.prediction.application.dto.NewsSignalItem;
 import com.coanalysis.server.prediction.application.enums.PredictionLabel;
 import com.coanalysis.server.prediction.application.port.in.GeneratePredictionUseCase;
 import com.coanalysis.server.prediction.application.port.out.FetchCryptoPricePort;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,86 +39,23 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
 
     private static final double POSITIVE_THRESHOLD = 0.6;
     private static final double NEGATIVE_THRESHOLD = 0.4;
+    private static final int MIN_POLAR_NEWS_COUNT = 3;
+    private static final double TIME_DECAY_LAMBDA = 0.1;
+    private static final double SENTIMENT_WEIGHT = 0.7;
+    private static final double MOMENTUM_WEIGHT = 0.3;
 
     @Override
     public CryptoPrediction generatePrediction(String ticker) {
         log.info("Generating prediction for ticker: {}", ticker);
 
-        // 코인 정보 조회
         Optional<Crypto> cryptoOpt = cryptoRepository.findById(ticker.toUpperCase());
         if (cryptoOpt.isEmpty()) {
             log.warn("Crypto not found for ticker: {}", ticker);
             return null;
         }
-        Crypto crypto = cryptoOpt.get();
-        LocalDateTime now = LocalDateTime.now();
 
-        // 해당 코인의 마지막 예측 시간 조회
-        LocalDateTime lastPredictionTime = cryptoPredictionRepository.findLastPredictionTimeByTicker(ticker.toUpperCase());
-
-        // 마지막 예측 이후의 뉴스만 조회 (기사 중복 사용 방지)
-        Map<String, Integer> sentimentCounts;
-        if (lastPredictionTime != null) {
-            sentimentCounts = loadNewsAnalysisPort.countUnusedNewsBySentiment(ticker, lastPredictionTime, now);
-            log.debug("Using news after last prediction at {} for {}", lastPredictionTime, ticker);
-        } else {
-            LocalDateTime from = now.minusHours(24);
-            sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
-            log.debug("First prediction for {}, using last 24h news", ticker);
-        }
-
-        int positiveCount = sentimentCounts.getOrDefault("positive", 0);
-        int negativeCount = sentimentCounts.getOrDefault("negative", 0);
-        int neutralCount = sentimentCounts.getOrDefault("neutral", 0);
-        int totalNonNeutral = positiveCount + negativeCount;
-
-        // 긍정 비율 계산 (중립 제외)
-        double positiveRatio = totalNonNeutral > 0
-                ? (double) positiveCount / totalNonNeutral
-                : 0.5; // 뉴스가 없으면 중립으로
-
-        // 예측 라벨 결정
-        PredictionLabel predictionLabel;
-        if (positiveRatio > POSITIVE_THRESHOLD) {
-            predictionLabel = PredictionLabel.UP;
-        } else if (positiveRatio < NEGATIVE_THRESHOLD) {
-            predictionLabel = PredictionLabel.DOWN;
-        } else {
-            predictionLabel = PredictionLabel.NEUTRAL;
-        }
-
-        // 중립 예측은 저장하지 않음
-        if (predictionLabel == PredictionLabel.NEUTRAL) {
-            log.info("Skipping neutral prediction for {}: positiveRatio={}, newsCount={}",
-                    ticker, positiveRatio, positiveCount + negativeCount + neutralCount);
-            return null;
-        }
-
-        // 현재 가격 조회
         Double currentPrice = fetchCryptoPricePort.fetchCurrentPrice(ticker);
-        if (currentPrice == null) {
-            log.warn("Failed to fetch current price for ticker: {}", ticker);
-            currentPrice = 0.0;
-        }
-
-        // 예측 저장
-        CryptoPrediction prediction = CryptoPrediction.builder()
-                .crypto(crypto)
-                .predictionDate(LocalDate.now())
-                .predictionTime(now)
-                .positiveCount(positiveCount)
-                .negativeCount(negativeCount)
-                .neutralCount(neutralCount)
-                .positiveRatio(Math.round(positiveRatio * 100) / 100.0)
-                .predictionLabel(predictionLabel)
-                .priceAtPrediction(currentPrice)
-                .build();
-
-        CryptoPrediction savedPrediction = savePredictionPort.savePrediction(prediction);
-        log.info("Prediction generated for {}: label={}, positiveRatio={}, newsCount={}",
-                ticker, predictionLabel, positiveRatio, positiveCount + negativeCount + neutralCount);
-
-        return savedPrediction;
+        return buildPrediction(cryptoOpt.get(), currentPrice);
     }
 
     @Override
@@ -124,19 +63,15 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
         log.info("Generating predictions for all cryptos");
         List<Crypto> allCryptos = cryptoRepository.findAll();
 
-        // 1. 모든 코인의 가격을 한 번에 조회 (rate limit 방지)
-        List<String> tickers = allCryptos.stream()
-                .map(Crypto::getTicker)
-                .toList();
+        List<String> tickers = allCryptos.stream().map(Crypto::getTicker).toList();
         Map<String, Double> priceMap = fetchCryptoPricePort.fetchAllPrices(tickers);
         log.info("Fetched prices for {} cryptos", priceMap.size());
 
-        // 2. 각 코인에 대해 예측 생성 (이미 조회한 가격 사용)
         List<CryptoPrediction> predictions = new ArrayList<>();
         for (Crypto crypto : allCryptos) {
             try {
                 Double price = priceMap.get(crypto.getTicker());
-                CryptoPrediction prediction = generatePredictionWithPrice(crypto, price);
+                CryptoPrediction prediction = buildPrediction(crypto, price);
                 if (prediction != null) {
                     predictions.add(prediction);
                 }
@@ -149,59 +84,77 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
         return predictions;
     }
 
-    private CryptoPrediction generatePredictionWithPrice(Crypto crypto, Double currentPrice) {
+    @Override
+    @Transactional(readOnly = true)
+    public long countRecentNews(int hoursAgo) {
+        LocalDateTime from = LocalDateTime.now().minusHours(hoursAgo);
+        return newsRepository.countNewsPublishedSince(from);
+    }
+
+    /**
+     * 예측 생성의 핵심 로직.
+     * 1) 뉴스 신호 로드 (점수 가중합 + 시간 가중치)
+     * 2) 가격 모멘텀 결합
+     * 3) 임계값 기반 라벨 결정 후 저장
+     */
+    private CryptoPrediction buildPrediction(Crypto crypto, Double currentPrice) {
         String ticker = crypto.getTicker();
         LocalDateTime now = LocalDateTime.now();
 
-        // 해당 코인의 마지막 예측 시간 조회
         LocalDateTime lastPredictionTime = cryptoPredictionRepository.findLastPredictionTimeByTicker(ticker);
 
-        // 마지막 예측 이후의 뉴스만 조회 (기사 중복 사용 방지)
-        // 첫 예측인 경우 최근 24시간 뉴스 사용
-        Map<String, Integer> sentimentCounts;
+        List<NewsSignalItem> signals;
         if (lastPredictionTime != null) {
-            sentimentCounts = loadNewsAnalysisPort.countUnusedNewsBySentiment(ticker, lastPredictionTime, now);
-            log.debug("Using news after last prediction at {} for {}", lastPredictionTime, ticker);
+            signals = loadNewsAnalysisPort.loadUnusedNewsSignals(ticker, lastPredictionTime, now);
         } else {
-            LocalDateTime from = now.minusHours(24);
-            sentimentCounts = loadNewsAnalysisPort.countNewsBySentiment(ticker, from, now);
-            log.debug("First prediction for {}, using last 24h news", ticker);
+            signals = loadNewsAnalysisPort.loadNewsSignals(ticker, now.minusHours(24), now);
         }
 
-        int positiveCount = sentimentCounts.getOrDefault("positive", 0);
-        int negativeCount = sentimentCounts.getOrDefault("negative", 0);
-        int neutralCount = sentimentCounts.getOrDefault("neutral", 0);
-        int totalNonNeutral = positiveCount + negativeCount;
+        int positiveCount = (int) signals.stream()
+                .filter(s -> s.getSentimentLabel() != null && s.getSentimentLabel().toLowerCase().contains("positive"))
+                .count();
+        int negativeCount = (int) signals.stream()
+                .filter(s -> s.getSentimentLabel() != null && s.getSentimentLabel().toLowerCase().contains("negative"))
+                .count();
+        int neutralCount = (int) signals.stream()
+                .filter(s -> s.getSentimentLabel() == null || s.getSentimentLabel().toLowerCase().contains("neutral"))
+                .count();
+        int totalPolarCount = positiveCount + negativeCount;
 
-        // 긍정 비율 계산 (중립 제외)
-        double positiveRatio = totalNonNeutral > 0
-                ? (double) positiveCount / totalNonNeutral
+        if (totalPolarCount < MIN_POLAR_NEWS_COUNT) {
+            log.info("Insufficient polar news for {}: polarCount={} (min={})", ticker, totalPolarCount, MIN_POLAR_NEWS_COUNT);
+            return null;
+        }
+
+        double positiveWeightedScore = computeWeightedScore(signals, "positive", now);
+        double negativeWeightedScore = computeWeightedScore(signals, "negative", now);
+        double totalWeightedScore = positiveWeightedScore + negativeWeightedScore;
+
+        double sentimentRatio = totalWeightedScore > 0
+                ? positiveWeightedScore / totalWeightedScore
                 : 0.5;
 
-        // 예측 라벨 결정
+        double combinedRatio = combineWithPriceMomentum(sentimentRatio, ticker, currentPrice);
+
         PredictionLabel predictionLabel;
-        if (positiveRatio > POSITIVE_THRESHOLD) {
+        if (combinedRatio > POSITIVE_THRESHOLD) {
             predictionLabel = PredictionLabel.UP;
-        } else if (positiveRatio < NEGATIVE_THRESHOLD) {
+        } else if (combinedRatio < NEGATIVE_THRESHOLD) {
             predictionLabel = PredictionLabel.DOWN;
         } else {
             predictionLabel = PredictionLabel.NEUTRAL;
         }
 
-        // 중립 예측은 저장하지 않음
         if (predictionLabel == PredictionLabel.NEUTRAL) {
-            log.debug("Skipping neutral prediction for {}: positiveRatio={}, newsCount={}",
-                    ticker, positiveRatio, positiveCount + negativeCount + neutralCount);
+            log.info("Skipping neutral prediction for {}: combinedRatio={}, polarCount={}", ticker, combinedRatio, totalPolarCount);
             return null;
         }
 
-        // 가격이 없으면 0으로 설정
         if (currentPrice == null) {
             log.warn("Price not available for ticker: {}", ticker);
             currentPrice = 0.0;
         }
 
-        // 예측 저장
         CryptoPrediction prediction = CryptoPrediction.builder()
                 .crypto(crypto)
                 .predictionDate(LocalDate.now())
@@ -209,22 +162,56 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
                 .positiveCount(positiveCount)
                 .negativeCount(negativeCount)
                 .neutralCount(neutralCount)
-                .positiveRatio(Math.round(positiveRatio * 100) / 100.0)
+                .positiveRatio(Math.round(combinedRatio * 1000) / 1000.0)
                 .predictionLabel(predictionLabel)
                 .priceAtPrediction(currentPrice)
                 .build();
 
-        CryptoPrediction savedPrediction = savePredictionPort.savePrediction(prediction);
-        log.debug("Prediction generated for {}: label={}, positiveRatio={}, newsCount={}",
-                ticker, predictionLabel, positiveRatio, positiveCount + negativeCount + neutralCount);
-
-        return savedPrediction;
+        CryptoPrediction saved = savePredictionPort.savePrediction(prediction);
+        log.info("Prediction generated for {}: label={}, combinedRatio={}, sentimentRatio={}, polarCount={}",
+                ticker, predictionLabel, combinedRatio, sentimentRatio, totalPolarCount);
+        return saved;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public long countRecentNews(int hoursAgo) {
-        LocalDateTime from = LocalDateTime.now().minusHours(hoursAgo);
-        return newsRepository.countNewsPublishedSince(from);
+    /**
+     * 지수 감쇠 시간 가중치를 적용한 감성 점수 합산.
+     * 최신 기사일수록 더 큰 가중치를 받는다.
+     */
+    private double computeWeightedScore(List<NewsSignalItem> signals, String labelType, LocalDateTime now) {
+        return signals.stream()
+                .filter(s -> s.getSentimentLabel() != null
+                        && s.getSentimentLabel().toLowerCase().contains(labelType)
+                        && s.getSentimentScore() != null
+                        && s.getPublishedAt() != null)
+                .mapToDouble(s -> {
+                    double hoursAgo = ChronoUnit.MINUTES.between(s.getPublishedAt(), now) / 60.0;
+                    double timeWeight = Math.exp(-TIME_DECAY_LAMBDA * hoursAgo);
+                    return s.getSentimentScore() * timeWeight;
+                })
+                .sum();
+    }
+
+    /**
+     * 센티먼트 비율(70%)과 가격 모멘텀(30%)을 결합.
+     * 이전 예측 이후 가격 변동을 tanh로 정규화하여 [0,1] 범위로 변환.
+     */
+    private double combineWithPriceMomentum(double sentimentRatio, String ticker, Double currentPrice) {
+        Optional<Double> lastPriceOpt = cryptoPredictionRepository.findLastPriceAtPredictionByTicker(ticker);
+
+        if (lastPriceOpt.isEmpty() || lastPriceOpt.get() == null || lastPriceOpt.get() == 0
+                || currentPrice == null || currentPrice == 0) {
+            log.debug("No price momentum data for {}, using sentiment only", ticker);
+            return sentimentRatio;
+        }
+
+        double lastPrice = lastPriceOpt.get();
+        double rawMomentum = (currentPrice - lastPrice) / lastPrice;
+        // tanh로 정규화: ±10% 변동 → tanh(±1) ≈ ±0.76 → [0,1] 범위로 변환
+        double normalizedMomentum = (Math.tanh(rawMomentum * 10) + 1) / 2.0;
+
+        double combined = sentimentRatio * SENTIMENT_WEIGHT + normalizedMomentum * MOMENTUM_WEIGHT;
+        log.debug("Price momentum for {}: rawMomentum={}%, normalizedMomentum={}, combined={}",
+                ticker, rawMomentum * 100, normalizedMomentum, combined);
+        return combined;
     }
 }

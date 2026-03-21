@@ -208,57 +208,55 @@ public class HuggingFaceClient {
     }
 
     private SentimentAnalysisResult parseResults(List<HuggingFaceSentimentResult> results) {
-        double rawPositive = 0.0;
-        double rawNeutral = 0.0;
-        double rawNegative = 0.0;
+        double positive = 0.0;
+        double neutral = 0.0;
+        double negative = 0.0;
 
         for (HuggingFaceSentimentResult result : results) {
             String label = result.getLabel().toLowerCase();
             Double score = result.getScore();
 
             switch (label) {
-                case "positive" -> rawPositive = score;
-                case "neutral" -> rawNeutral = score;
-                case "negative" -> rawNegative = score;
+                case "positive" -> positive = score;
+                case "neutral" -> neutral = score;
+                case "negative" -> negative = score;
             }
         }
 
-        // neutral 비중을 1%로 고정하고, 나머지 99%를 positive/negative 비율대로 재분배
-        double adjustedNeutral = 0.01 * rawNeutral;
-        double polarSum = rawPositive + rawNegative;
-
-        double adjustedPositive;
-        double adjustedNegative;
+        // neutral을 절반으로 줄이고, 줄인 만큼을 positive/negative 비율로 재분배 (총합 1 유지)
+        double neutralReduced = neutral * 0.5;
+        double redistributed = neutral * 0.5;
+        double polarSum = positive + negative;
 
         if (polarSum > 0) {
-            adjustedPositive = 0.99 * (rawPositive / polarSum);
-            adjustedNegative = 0.99 * (rawNegative / polarSum);
+            positive = positive + redistributed * (positive / polarSum);
+            negative = negative + redistributed * (negative / polarSum);
         } else {
-            adjustedPositive = 0.495;
-            adjustedNegative = 0.495;
+            positive = positive + redistributed * 0.5;
+            negative = negative + redistributed * 0.5;
         }
+        neutral = neutralReduced;
 
-        // 조정된 점수 중 가장 높은 것을 sentiment로 결정
         Sentiment sentiment;
         double topScore;
 
-        if (adjustedPositive >= adjustedNegative && adjustedPositive >= adjustedNeutral) {
+        if (positive >= negative && positive >= neutral) {
             sentiment = Sentiment.POSITIVE;
-            topScore = adjustedPositive;
-        } else if (adjustedNegative >= adjustedPositive && adjustedNegative >= adjustedNeutral) {
+            topScore = positive;
+        } else if (negative >= positive && negative >= neutral) {
             sentiment = Sentiment.NEGATIVE;
-            topScore = adjustedNegative;
+            topScore = negative;
         } else {
             sentiment = Sentiment.NEUTRAL;
-            topScore = adjustedNeutral;
+            topScore = neutral;
         }
 
         return SentimentAnalysisResult.builder()
                 .sentiment(sentiment)
                 .score(topScore)
-                .positiveScore(adjustedPositive)
-                .neutralScore(adjustedNeutral)
-                .negativeScore(adjustedNegative)
+                .positiveScore(positive)
+                .neutralScore(neutral)
+                .negativeScore(negative)
                 .build();
     }
 

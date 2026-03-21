@@ -1,6 +1,9 @@
 package com.coanalysis.server.prediction.application.port.out;
 
+import com.coanalysis.server.prediction.application.dto.NewsSignalItem;
+
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 public interface LoadNewsAnalysisPort {
@@ -17,4 +20,8 @@ public interface LoadNewsAnalysisPort {
      * @return 감성 라벨별 뉴스 개수
      */
     Map<String, Integer> countUnusedNewsBySentiment(String ticker, LocalDateTime lastPredictionTime, LocalDateTime to);
+
+    List<NewsSignalItem> loadNewsSignals(String ticker, LocalDateTime from, LocalDateTime to);
+
+    List<NewsSignalItem> loadUnusedNewsSignals(String ticker, LocalDateTime lastPredictionTime, LocalDateTime to);
 }

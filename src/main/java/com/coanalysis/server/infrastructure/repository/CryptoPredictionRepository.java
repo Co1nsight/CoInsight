@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CryptoPredictionRepository extends JpaRepository<CryptoPrediction, Long> {
@@ -28,4 +29,7 @@ public interface CryptoPredictionRepository extends JpaRepository<CryptoPredicti
 
     @Query("SELECT MAX(p.predictionTime) FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker")
     LocalDateTime findLastPredictionTimeByTicker(@Param("ticker") String ticker);
+
+    @Query("SELECT p.priceAtPrediction FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker ORDER BY p.predictionTime DESC LIMIT 1")
+    Optional<Double> findLastPriceAtPredictionByTicker(@Param("ticker") String ticker);
 }

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1771300104669,
-  "projectRoot": "/Users/seongmin/coanalysis",
+  "lastScanned": 1774095647035,
+  "projectRoot": "/Users/seongmik/IdeaProjects/CoInsight",
   "techStack": {
     "languages": [
       {
@@ -46,43 +46,226 @@
     "build": {
       "path": "build",
       "purpose": "Build output",
-      "fileCount": 2,
-      "lastAccessed": 1771300104657,
+      "fileCount": 0,
+      "lastAccessed": 1774095647023,
+      "keyFiles": []
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 1,
+      "lastAccessed": 1774095647024,
       "keyFiles": [
-        "resolvedMainClassName"
+        "coanalysis.mv.db"
       ]
     },
     "gradle": {
       "path": "gradle",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1771300104657,
+      "lastAccessed": 1774095647024,
       "keyFiles": []
     },
     "nginx": {
       "path": "nginx",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771300104657,
+      "lastAccessed": 1774095647024,
       "keyFiles": [
         "default.conf"
       ]
+    },
+    "out": {
+      "path": "out",
+      "purpose": "Build output",
+      "fileCount": 0,
+      "lastAccessed": 1774095647024,
+      "keyFiles": []
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1771300104658,
+      "lastAccessed": 1774095647024,
       "keyFiles": []
     },
     "src/test": {
       "path": "src/test",
       "purpose": "Test files",
       "fileCount": 0,
-      "lastAccessed": 1771300104660,
+      "lastAccessed": 1774095647026,
       "keyFiles": []
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/HuggingFaceClient.java",
+      "accessCount": 7,
+      "lastAccessed": 1774096476831,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/adapter/out/LoadNewsAnalysisAdapter.java",
+      "accessCount": 5,
+      "lastAccessed": 1774096173142,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/service/VerifyPredictionService.java",
+      "accessCount": 5,
+      "lastAccessed": 1774096240467,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/port/out/LoadNewsAnalysisPort.java",
+      "accessCount": 4,
+      "lastAccessed": 1774096158130,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/infrastructure/repository/CryptoPredictionRepository.java",
+      "accessCount": 4,
+      "lastAccessed": 1774096193180,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/service/GeneratePredictionService.java",
+      "accessCount": 4,
+      "lastAccessed": 1774096228149,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/domain/CryptoPrediction.java",
+      "accessCount": 2,
+      "lastAccessed": 1774095983855,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/domain/PredictionVerification.java",
+      "accessCount": 2,
+      "lastAccessed": 1774095987032,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/domain/NewsAnalysis.java",
+      "accessCount": 2,
+      "lastAccessed": 1774095988131,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java",
+      "accessCount": 1,
+      "lastAccessed": 1774095763077,
+      "type": "directory"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/adapter/in/PredictionController.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095768210,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/enums/PredictionLabel.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095768260,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/adapter/out/FetchCryptoPriceAdapter.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095774632,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/in/PredictionGenerationScheduler.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095775539,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/service/GetPredictionService.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095775579,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/adapter/out/SavePredictionAdapter.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095781786,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/batch/adapter/in/PredictionVerificationScheduler.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095782275,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/enums/IntervalType.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095798025,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/service/AnalyzeNewsService.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095801598,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/AnalyzingNewsAdapter.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095801789,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/SentimentAnalyzerFactory.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095802243,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/market/adapter/out/BithumbClient.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095809572,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/port/out/FetchCryptoPricePort.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095819891,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/port/out/SavePredictionPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095820100,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/port/out/LoadPredictionPort.java",
+      "accessCount": 1,
+      "lastAccessed": 1774095820298,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/application/domain/News.java",
+      "accessCount": 1,
+      "lastAccessed": 1774096049724,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/news/adapter/out/dto/SentimentAnalysisResult.java",
+      "accessCount": 1,
+      "lastAccessed": 1774096050380,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/coanalysis/server/prediction/application/dto/NewsSignalItem.java",
+      "accessCount": 1,
+      "lastAccessed": 1774096151874,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }
