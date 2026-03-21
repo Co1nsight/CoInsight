@@ -46,7 +46,7 @@ public class CryptoCompareNewsClient implements FetchCryptoNewsPort {
                     return Collections.emptyList();
                 }
 
-                List<CollectedNews> news = response.getData().stream()
+                List<CollectedNews> news = response.getDataAsList().stream()
                         .map(this::toCollectedNews)
                         .collect(Collectors.toList());
 

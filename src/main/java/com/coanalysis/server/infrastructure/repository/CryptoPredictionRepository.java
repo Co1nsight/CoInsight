@@ -32,4 +32,10 @@ public interface CryptoPredictionRepository extends JpaRepository<CryptoPredicti
 
     @Query("SELECT p.priceAtPrediction FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker ORDER BY p.predictionTime DESC LIMIT 1")
     Optional<Double> findLastPriceAtPredictionByTicker(@Param("ticker") String ticker);
+
+    @Query("SELECT p FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker ORDER BY p.predictionTime DESC LIMIT 1")
+    Optional<CryptoPrediction> findLastPredictionByTicker(@Param("ticker") String ticker);
+
+    @Query("SELECT p.predictionTime FROM CryptoPrediction p WHERE p.crypto.ticker = :ticker ORDER BY p.predictionTime DESC LIMIT 2")
+    List<LocalDateTime> findLastTwoPredictionTimesByTicker(@Param("ticker") String ticker);
 }

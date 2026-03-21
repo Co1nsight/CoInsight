@@ -4,6 +4,7 @@ import com.coanalysis.server.crypto.application.domain.Crypto;
 import com.coanalysis.server.infrastructure.repository.CryptoRepository;
 import com.coanalysis.server.infrastructure.repository.CryptoPredictionRepository;
 import com.coanalysis.server.infrastructure.repository.NewsRepository;
+import com.coanalysis.server.infrastructure.repository.PredictionVerificationRepository;
 import com.coanalysis.server.prediction.application.domain.CryptoPrediction;
 import com.coanalysis.server.prediction.application.dto.NewsSignalItem;
 import com.coanalysis.server.prediction.application.enums.PredictionLabel;
@@ -36,6 +37,7 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
     private final SavePredictionPort savePredictionPort;
     private final NewsRepository newsRepository;
     private final CryptoPredictionRepository cryptoPredictionRepository;
+    private final PredictionVerificationRepository predictionVerificationRepository;
 
     private static final double POSITIVE_THRESHOLD = 0.6;
     private static final double NEGATIVE_THRESHOLD = 0.4;
@@ -101,11 +103,11 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
         String ticker = crypto.getTicker();
         LocalDateTime now = LocalDateTime.now();
 
-        LocalDateTime lastPredictionTime = cryptoPredictionRepository.findLastPredictionTimeByTicker(ticker);
+        LocalDateTime newsStartTime = resolveNewsStartTime(ticker, now);
 
         List<NewsSignalItem> signals;
-        if (lastPredictionTime != null) {
-            signals = loadNewsAnalysisPort.loadUnusedNewsSignals(ticker, lastPredictionTime, now);
+        if (newsStartTime != null) {
+            signals = loadNewsAnalysisPort.loadUnusedNewsSignals(ticker, newsStartTime, now);
         } else {
             signals = loadNewsAnalysisPort.loadNewsSignals(ticker, now.minusHours(24), now);
         }
@@ -171,6 +173,42 @@ public class GeneratePredictionService implements GeneratePredictionUseCase {
         log.info("Prediction generated for {}: label={}, combinedRatio={}, sentimentRatio={}, polarCount={}",
                 ticker, predictionLabel, combinedRatio, sentimentRatio, totalPolarCount);
         return saved;
+    }
+
+    /**
+     * 뉴스 조회 시작 시간 결정.
+     * - 마지막 예측이 없으면 null (→ 24시간 전 사용)
+     * - 마지막 예측의 모든 검증이 실패했으면 그 이전 예측 시간으로 롤백 (실패한 예측의 뉴스 재활용)
+     * - 그 외(성공 or 검증 미완료)는 마지막 예측 시간 사용
+     */
+    private LocalDateTime resolveNewsStartTime(String ticker, LocalDateTime now) {
+        Optional<CryptoPrediction> lastPredictionOpt = cryptoPredictionRepository.findLastPredictionByTicker(ticker);
+        if (lastPredictionOpt.isEmpty()) {
+            return null;
+        }
+
+        CryptoPrediction lastPrediction = lastPredictionOpt.get();
+        long totalVerifications = predictionVerificationRepository.countByPredictionId(lastPrediction.getId());
+
+        if (totalVerifications == 0) {
+            // 아직 검증 결과 없음(pending) → 정상 커트라인
+            return lastPrediction.getPredictionTime();
+        }
+
+        long successCount = predictionVerificationRepository.countSuccessfulByPredictionId(lastPrediction.getId());
+        if (successCount == 0) {
+            // 모든 검증 실패 → 이전 예측 시간으로 롤백하여 실패한 예측의 뉴스 재활용
+            List<LocalDateTime> lastTwoTimes = cryptoPredictionRepository.findLastTwoPredictionTimesByTicker(ticker);
+            if (lastTwoTimes.size() >= 2) {
+                LocalDateTime prevTime = lastTwoTimes.get(1);
+                log.info("Last prediction for {} failed all verifications, rolling back news start to {}", ticker, prevTime);
+                return prevTime;
+            }
+            log.info("Last prediction for {} failed, no prior prediction found, using 24h window", ticker);
+            return null;
+        }
+
+        return lastPrediction.getPredictionTime();
     }
 
     /**
