@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import com.coanalysis.server.batch.adapter.out.ArticleContentScraper;
 import com.coanalysis.server.batch.adapter.out.CryptoCompareNewsClient;
-import com.coanalysis.server.batch.adapter.out.DigitalTodayNewsClient;
 import com.coanalysis.server.batch.adapter.out.TokenPostNewsClient;
 import com.coanalysis.server.batch.application.domain.CollectedNews;
 import com.coanalysis.server.batch.application.port.in.CollectNewsUseCase;
@@ -42,7 +41,6 @@ public class CollectNewsService implements CollectNewsUseCase {
     private final ArticleContentScraper articleContentScraper;
     private final CryptoCompareNewsClient englishNewsClient;
     private final TokenPostNewsClient tokenPostNewsClient;
-    private final DigitalTodayNewsClient digitalTodayNewsClient;
     private final FindDuplicateNewsPort findDuplicateNewsPort;
     private final SaveCollectedNewsPort saveCollectedNewsPort;
     private final MapCryptoNewsPort mapCryptoNewsPort;
@@ -64,14 +62,9 @@ public class CollectNewsService implements CollectNewsUseCase {
         List<CollectedNews> tokenPostNews = tokenPostNewsClient.fetchLatestNews();
         log.info("Collected {} Korean news from TokenPost", tokenPostNews.size());
 
-        // 3. 한국어 뉴스 수집 (DigitalToday)
-        List<CollectedNews> digitalTodayNews = digitalTodayNewsClient.fetchLatestNews();
-        log.info("Collected {} Korean news from DigitalToday", digitalTodayNews.size());
-
-        // 4. 전체 뉴스 합치기
+        // 3. 전체 뉴스 합치기
         List<CollectedNews> allNews = Stream.concat(
-                Stream.concat(englishNews.stream(), tokenPostNews.stream()),
-                digitalTodayNews.stream()
+                englishNews.stream(), tokenPostNews.stream()
         ).collect(Collectors.toList());
 
         if (allNews.isEmpty()) {
@@ -79,7 +72,7 @@ public class CollectNewsService implements CollectNewsUseCase {
             return 0;
         }
 
-        // 5. 중복 링크 추출 및 확인
+        // 4. 중복 링크 추출 및 확인
         Set<String> links = allNews.stream()
                 .map(CollectedNews::originalLink)
                 .collect(Collectors.toSet());
