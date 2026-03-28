@@ -7,6 +7,10 @@ import com.coanalysis.server.batch.application.port.out.FetchCryptoNewsPort;
 import com.coanalysis.server.news.application.enums.Language;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -22,24 +26,35 @@ public class CryptoCompareNewsClient implements FetchCryptoNewsPort {
     private final RestTemplate restTemplate;
     private final String baseUrl;
     private final int maxRetries;
+    private final String apiKey;
 
     public CryptoCompareNewsClient(
             @Value("${cryptocompare.api.base-url:https://min-api.cryptocompare.com}") String baseUrl,
-            @Value("${cryptocompare.api.max-retries:3}") int maxRetries) {
+            @Value("${cryptocompare.api.max-retries:3}") int maxRetries,
+            @Value("${cryptocompare.api.key:}") String apiKey) {
         this.restTemplate = new RestTemplate();
         this.baseUrl = baseUrl;
         this.maxRetries = maxRetries;
+        this.apiKey = apiKey;
     }
 
     @Override
     public List<CollectedNews> fetchLatestNews() {
         String url = baseUrl + "/data/v2/news/?lang=EN";
 
+        HttpHeaders headers = new HttpHeaders();
+        if (apiKey != null && !apiKey.isBlank()) {
+            headers.set("Authorization", "Apikey " + apiKey);
+        }
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 log.info("Fetching crypto news from CryptoCompare (attempt {}/{})", attempt, maxRetries);
 
-                CryptoCompareNewsResponse response = restTemplate.getForObject(url, CryptoCompareNewsResponse.class);
+                ResponseEntity<CryptoCompareNewsResponse> responseEntity = restTemplate.exchange(
+                        url, HttpMethod.GET, entity, CryptoCompareNewsResponse.class);
+                CryptoCompareNewsResponse response = responseEntity.getBody();
 
                 if (response == null || response.getData() == null) {
                     log.warn("Empty response from CryptoCompare API");

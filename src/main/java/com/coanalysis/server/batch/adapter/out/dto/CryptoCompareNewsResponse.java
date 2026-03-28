@@ -4,16 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.util.List;
-import java.util.Map;
 
 @Getter
 @NoArgsConstructor
 public class CryptoCompareNewsResponse {
     @JsonProperty("Data")
-    private Map<String, CryptoCompareNewsItem> data;
+    private List<CryptoCompareNewsItem> data;
 
     public List<CryptoCompareNewsItem> getDataAsList() {
         if (data == null) return List.of();
-        return List.copyOf(data.values());
+        return List.copyOf(data);
     }
 }
