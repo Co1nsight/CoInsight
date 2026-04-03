@@ -38,4 +38,8 @@ public class News extends BaseEntity {
     @Builder.Default
     private Language language = Language.EN;
 
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
 }
