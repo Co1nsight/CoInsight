@@ -16,6 +16,7 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_JPA_SHOW_SQL=true
       - HUGGINGFACE_API_TOKEN=${HUGGINGFACE_API_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - h2-data:/data
     restart: unless-stopped
