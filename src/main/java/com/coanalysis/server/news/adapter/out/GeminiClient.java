@@ -61,6 +61,13 @@ public class GeminiClient {
         } catch (Exception e) {
             log.error("Gemini API 호출 실패: {}", e.getMessage());
             return null;
+        } finally {
+            // 분당 15건 제한 대응: 요청 후 무조건 4초 대기
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
