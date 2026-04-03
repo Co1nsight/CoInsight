@@ -18,11 +18,10 @@ public class ArticleContentScraper {
     private static final int TIMEOUT_MS = 5000;
     private static final int DELAY_MS = 100;
 
-    private static final Set<String> RSS_SOURCES = Set.of("TokenPost", "DigitalToday");
+    private static final Set<String> RSS_SOURCES = Set.of("TokenPost");
 
     private static final Map<String, String> SOURCE_SELECTORS = Map.of(
-            "TokenPost", ".article_content p",
-            "DigitalToday", "#article-view-content-div"
+            "TokenPost", ".article_content p"
     );
 
     // 제거할 불필요 요소 셀렉터
