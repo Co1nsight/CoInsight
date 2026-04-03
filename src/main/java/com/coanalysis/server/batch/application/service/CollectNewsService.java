@@ -25,6 +25,7 @@ import com.coanalysis.server.infrastructure.exception.CustomException;
 import com.coanalysis.server.infrastructure.exception.ErrorCode;
 import com.coanalysis.server.news.adapter.out.GeminiClient;
 import com.coanalysis.server.news.adapter.out.SentimentAnalyzerFactory;
+import com.coanalysis.server.news.adapter.out.dto.GeminiSummaryResult;
 import com.coanalysis.server.news.adapter.out.dto.SentimentAnalysisResult;
 import com.coanalysis.server.news.application.domain.News;
 import com.coanalysis.server.news.application.domain.NewsAnalysis;
@@ -102,6 +103,13 @@ public class CollectNewsService implements CollectNewsUseCase {
                 .map(Crypto::getTicker)
                 .collect(Collectors.toSet());
 
+        // 거래대금 상위 50개 티커 (Gemini 프롬프트용)
+        List<String> topTickers = allCryptos.stream()
+                .sorted((a, b) -> Double.compare(b.getTradingVolume(), a.getTradingVolume()))
+                .limit(50)
+                .map(Crypto::getTicker)
+                .collect(Collectors.toList());
+
         // 8. 뉴스 저장
         List<News> savedNewsList = saveCollectedNewsPort.saveAll(uniqueNews);
         log.info("Saved {} new news articles", savedNewsList.size());
@@ -113,7 +121,7 @@ public class CollectNewsService implements CollectNewsUseCase {
             final CollectedNews collected = uniqueNews.get(i);
 
             try {
-                processNewsItem(savedNews, collected, knownTickers, keywordToTicker);
+                processNewsItem(savedNews, collected, knownTickers, keywordToTicker, topTickers);
             } catch (CustomException e) {
                 if (e.getErrorCode() == ErrorCode.HUGGINGFACE_QUOTA_EXCEEDED) {
                     log.warn("HuggingFace API 크레딧 소진. 남은 {} 건의 감성 분석을 중단합니다.",
@@ -133,7 +141,7 @@ public class CollectNewsService implements CollectNewsUseCase {
     }
 
     private void processNewsItem(News savedNews, CollectedNews collected, Set<String> knownTickers,
-                                  Map<String, String> keywordToTicker) {
+                                  Map<String, String> keywordToTicker, List<String> topTickers) {
         try {
             // 8-1. 감성 분석 수행 - 전문(full content) 기준으로 분석
             String textToAnalyze = buildTextForAnalysis(savedNews.getTitle(), savedNews.getContent());
@@ -151,18 +159,29 @@ public class CollectNewsService implements CollectNewsUseCase {
             log.debug("News ID {} ({}) sentiment analysis completed: {}",
                     savedNews.getId(), savedNews.getLanguage(), result.getSentiment());
 
-            // 8-3. Gemini 요약 생성 후 본문 교체
-            String summarized = geminiClient.summarizeNews(
-                    savedNews.getTitle(), savedNews.getContent());
-            if (summarized != null && !summarized.isBlank()) {
-                savedNews.updateContent(summarized);
+            // 8-3. Gemini 요약 생성 + 관련 코인 추출
+            GeminiSummaryResult geminiResult = geminiClient.summarizeNews(
+                    savedNews.getTitle(), savedNews.getContent(), topTickers);
+
+            Set<String> matchedTickers;
+            if (geminiResult != null && !geminiResult.summary().isBlank()) {
+                savedNews.updateContent(geminiResult.summary());
                 log.debug("News ID {} content replaced with Gemini summary", savedNews.getId());
+
+                // Gemini가 추출한 코인 사용, 없으면 키워드 매처로 fallback
+                if (!geminiResult.tickers().isEmpty()) {
+                    matchedTickers = geminiResult.tickers();
+                    log.debug("News ID {} coins from Gemini: {}", savedNews.getId(), matchedTickers);
+                } else {
+                    matchedTickers = extractMatchedTickers(savedNews, collected, knownTickers, keywordToTicker);
+                    log.debug("News ID {} coins from keyword matcher (Gemini empty): {}", savedNews.getId(), matchedTickers);
+                }
             } else {
-                log.warn("News ID {} Gemini 요약 실패, 원문 유지", savedNews.getId());
+                log.warn("News ID {} Gemini 요약 실패, 원문 유지 및 키워드 매처 사용", savedNews.getId());
+                matchedTickers = extractMatchedTickers(savedNews, collected, knownTickers, keywordToTicker);
             }
 
-            // 8-4. 코인 매핑 추출 및 저장 (ticker, 한글명, 영문명으로 매칭)
-            Set<String> matchedTickers = extractMatchedTickers(savedNews, collected, knownTickers, keywordToTicker);
+            // 8-4. 코인 매핑 저장
             if (!matchedTickers.isEmpty()) {
                 mapCryptoNewsPort.mapNewsToCoins(savedNews, matchedTickers);
                 log.debug("News ID {} mapped to coins: {}", savedNews.getId(), matchedTickers);
