@@ -23,7 +23,7 @@ public class GeminiClient {
             RestTemplate restTemplate,
             @Value("${gemini.api.key}") String apiKey,
             @Value("${gemini.api.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
-            @Value("${gemini.api.model:gemini-1.5-flash}") String model) {
+            @Value("${gemini.api.model:gemini-2.0-flash}") String model) {
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
