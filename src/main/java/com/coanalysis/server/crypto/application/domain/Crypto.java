@@ -29,4 +29,9 @@ public class Crypto extends BaseEntity {
 
     private double tradingVolume; //거래대금
 
+    public void updateMarketInfo(double currentPrice, double tradingVolume) {
+        this.currentPrice = currentPrice;
+        this.tradingVolume = tradingVolume;
+    }
+
 }
