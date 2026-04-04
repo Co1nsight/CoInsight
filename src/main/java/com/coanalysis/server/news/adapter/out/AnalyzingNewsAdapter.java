@@ -13,21 +13,23 @@ import org.springframework.stereotype.Repository;
 public class AnalyzingNewsAdapter implements AnalyzingNewsPort {
 
     private final HuggingFaceClient huggingFaceClient;
+    private final CryptoKeywordAnalyzer cryptoKeywordAnalyzer;
 
     @Override
     public NewsAnalysis analyzeContent(String title, String content) {
         String textToAnalyze = buildTextForAnalysis(title, content);
 
-        SentimentAnalysisResult result = huggingFaceClient.analyzeSentiment(textToAnalyze);
+        SentimentAnalysisResult bertResult = huggingFaceClient.analyzeSentiment(textToAnalyze);
+        SentimentAnalysisResult blendedResult = cryptoKeywordAnalyzer.blendWithKeywords(bertResult, textToAnalyze);
 
-        log.info("Sentiment analysis completed - Label: {}, Score: {}",
-                result.getSentiment().getLabel(),
-                result.getScore());
+        log.info("Sentiment analysis completed - BERT: {} ({:.2f}), Blended: {} ({:.2f})",
+                bertResult.getSentiment().getLabel(), bertResult.getScore(),
+                blendedResult.getSentiment().getLabel(), blendedResult.getScore());
 
         return NewsAnalysis.builder()
-                .sentimentLabel(result.getSentiment().name())
-                .sentimentScore(result.getScore())
-                .summary(generateSummary(result))
+                .sentimentLabel(blendedResult.getSentiment().name())
+                .sentimentScore(blendedResult.getScore())
+                .summary(generateSummary(bertResult, blendedResult))
                 .build();
     }
 
@@ -38,12 +40,15 @@ public class AnalyzingNewsAdapter implements AnalyzingNewsPort {
         return title + ". " + content;
     }
 
-    private String generateSummary(SentimentAnalysisResult result) {
-        return String.format("감성분석 결과: %s (신뢰도: %.1f%%) | 긍정: %.1f%%, 중립: %.1f%%, 부정: %.1f%%",
-                result.getSentiment().getKoreanLabel(),
-                result.getScore() * 100,
-                result.getPositiveScore() * 100,
-                result.getNeutralScore() * 100,
-                result.getNegativeScore() * 100);
+    private String generateSummary(SentimentAnalysisResult bertResult, SentimentAnalysisResult blendedResult) {
+        return String.format(
+                "감성분석 결과: %s (신뢰도: %.1f%%) | 긍정: %.1f%%, 중립: %.1f%%, 부정: %.1f%% [BERT: %s %.1f%% / 키워드 혼합 적용]",
+                blendedResult.getSentiment().getKoreanLabel(),
+                blendedResult.getScore() * 100,
+                blendedResult.getPositiveScore() * 100,
+                blendedResult.getNeutralScore() * 100,
+                blendedResult.getNegativeScore() * 100,
+                bertResult.getSentiment().getKoreanLabel(),
+                bertResult.getScore() * 100);
     }
 }
