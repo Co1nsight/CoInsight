@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -31,17 +32,23 @@ public class MainCryptoQuery {
             return PageResponse.of(List.of(), page, size, 0);
         }
 
-        // 2. Bithumb API에서 실시간 시세 조회 (KRW 마켓만)
+        // 2. Bithumb API에서 실시간 시세 조회 (KRW 마켓만) - 100개씩 배치 처리
         List<String> marketCodes = allCryptos.stream()
                 .map(c -> "KRW-" + c.getTicker())
                 .collect(Collectors.toList());
 
-        List<BithumbTickerDto> tickers;
-        try {
-            tickers = bithumbClient.getTickers(marketCodes);
-        } catch (Exception e) {
-            log.warn("Failed to fetch tickers from Bithumb API: {}", e.getMessage());
-            tickers = List.of();
+        List<BithumbTickerDto> tickers = new ArrayList<>();
+        int batchSize = 100;
+        for (int i = 0; i < marketCodes.size(); i += batchSize) {
+            List<String> batch = marketCodes.subList(i, Math.min(i + batchSize, marketCodes.size()));
+            try {
+                List<BithumbTickerDto> batchResult = bithumbClient.getTickers(batch);
+                if (batchResult != null) {
+                    tickers.addAll(batchResult);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch tickers from Bithumb API (batch {}/{}): {}", i / batchSize + 1, (marketCodes.size() + batchSize - 1) / batchSize, e.getMessage());
+            }
         }
 
         // 3. 티커 정보를 Map으로 변환
