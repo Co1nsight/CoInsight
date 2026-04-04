@@ -12,8 +12,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,9 +34,25 @@ public class MainCryptoQuery {
             return PageResponse.of(List.of(), page, size, 0);
         }
 
-        // 2. Bithumb API에서 실시간 시세 조회 (KRW 마켓만) - 100개씩 배치 처리
+        // 2. 유효한 마켓 코드 조회 (상장폐지 등 무효 ticker로 인한 배치 실패 방지)
+        Set<String> validMarketCodes;
+        try {
+            validMarketCodes = bithumbClient.getMarkets().stream()
+                    .filter(m -> "KRW".equals(m.getMarketType()))
+                    .map(m -> "KRW-" + m.getSymbol())
+                    .collect(Collectors.toCollection(HashSet::new));
+        } catch (Exception e) {
+            log.warn("Failed to fetch valid markets, will try all: {}", e.getMessage());
+            validMarketCodes = allCryptos.stream()
+                    .map(c -> "KRW-" + c.getTicker())
+                    .collect(Collectors.toCollection(HashSet::new));
+        }
+
+        // 3. Bithumb API에서 실시간 시세 조회 (유효한 마켓만, 100개씩 배치 처리)
+        final Set<String> finalValidMarketCodes = validMarketCodes;
         List<String> marketCodes = allCryptos.stream()
                 .map(c -> "KRW-" + c.getTicker())
+                .filter(finalValidMarketCodes::contains)
                 .collect(Collectors.toList());
 
         List<BithumbTickerDto> tickers = new ArrayList<>();
